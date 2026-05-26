@@ -1,8 +1,8 @@
 {
   "Contour": {
-    "draw": true,
+    "contour_levels": 24.866666793823242,
     "terrarium_mode": false,
-    "contour_levels": 20
+    "draw": true
   },
   "Style": {
     "backgroundColor": -1,
@@ -15,14 +15,19 @@
     "margin": 2,
     "clip_height": 0,
     "paper_format": 0,
-    "global_scale": 1.0
+    "global_scale": 1
   },
   "Image": {
+    "levelsMax": 255,
+    "levelsGamma": 0,
     "reset_image": false,
+    "imageAlpha": 255,
+    "levelsMin": 0,
     "Blur": 2,
-    "ImageAlpha": 255,
-    "Width": 500,
+    "draw": true,
+    "Width": 716,
     "Contrast": 0,
-    "source_file": "island.png"
+    "blackAndWhite": false,
+    "source_file": "eye.png"
   }
 }
