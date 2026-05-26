@@ -9,6 +9,7 @@ import processing.svg.*;
 ImgContourData data;
 DataGUI dataGui;
 
+PGraphics current_graphics;
 ControlP5 cp5;
 
 void setup()
@@ -45,9 +46,3 @@ void draw()
 
   end_draw();
 }
-
-void keyPressed() { key_pressed(); }
-void mousePressed() { mouse_pressed(); }
-void mouseDragged() { mouse_dragged(); }
-void mouseReleased() { mouse_released(); }
-void controlEvent(ControlEvent theEvent) { control_event(theEvent); }

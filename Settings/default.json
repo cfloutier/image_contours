@@ -1,0 +1,26 @@
+{
+  "Contour": {
+    "terrarium_mode": false
+  },
+  "Style": {
+    "backgroundColor": -1,
+    "lineColor": -16777216,
+    "lineWidth": 2.25
+  },
+  "Page": {
+    "clipping": false,
+    "clip_width": 0,
+    "margin": 2,
+    "clip_height": 0,
+    "paper_format": 0,
+    "global_scale": 1.0
+  },
+  "Image": {
+    "reset_image": false,
+    "Blur": 2,
+    "ImageAlpha": 255,
+    "Width": 500,
+    "Contrast": 0,
+    "source_file": "island.png"
+  }
+}
