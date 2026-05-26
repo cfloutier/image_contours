@@ -1,0 +1,33 @@
+{
+  "Contour": {
+    "contour_levels": 40.47333526611328,
+    "terrarium_mode": true,
+    "draw": true
+  },
+  "Style": {
+    "backgroundColor": -1,
+    "lineColor": -16777216,
+    "lineWidth": 0.45000001788139343
+  },
+  "Page": {
+    "clipping": false,
+    "clip_width": 0,
+    "margin": 2,
+    "clip_height": 0,
+    "paper_format": 2,
+    "global_scale": 0.8676472306251526
+  },
+  "Image": {
+    "levelsMax": 255,
+    "levelsGamma": -0.13999998569488525,
+    "reset_image": false,
+    "imageAlpha": 255,
+    "levelsMin": 0,
+    "Blur": 1,
+    "draw": false,
+    "Width": 800,
+    "Contrast": 0,
+    "blackAndWhite": false,
+    "source_file": "bretagne_z8.png"
+  }
+}
