@@ -251,27 +251,38 @@ class ContourShadeFilter
 
     int   threshold_index  = 0;
     int   direction_index  = 1;
+    int   current_level    = -1;
+    float threshold        = 0;
 
     for (int i_line = 0; i_line < source.size(); i_line++)
     {
       Polyline source_line = source.polylines.get(i_line);
 
-      // Advance threshold once per contour polyline
-      float threshold = data.shade_filter.get_threshold_by_index(threshold_index);
-      threshold_index += direction_index;
+      // Determine the level_index of this polyline (0 if not tagged).
+      int line_level = (source_line instanceof ContourPolyline)
+        ? ((ContourPolyline)source_line).level_index
+        : i_line;
 
-      if (data.shade_filter.mirror)
+      // Advance threshold only when entering a new contour level.
+      if (line_level != current_level)
       {
-        if (threshold_index >= data.shade_filter.nb_values || threshold_index < 0)
+        current_level = line_level;
+        threshold = data.shade_filter.get_threshold_by_index(threshold_index);
+        threshold_index += direction_index;
+
+        if (data.shade_filter.mirror)
         {
-          direction_index  = -direction_index;
-          threshold_index += direction_index * 2;
+          if (threshold_index >= data.shade_filter.nb_values || threshold_index < 0)
+          {
+            direction_index  = -direction_index;
+            threshold_index += direction_index * 2;
+          }
         }
-      }
-      else
-      {
-        if (threshold_index >= data.shade_filter.nb_values)
-          threshold_index = 0;
+        else
+        {
+          if (threshold_index >= data.shade_filter.nb_values)
+            threshold_index = 0;
+        }
       }
 
       for (int i_pt = 0; i_pt < source_line.size(); i_pt++)
