@@ -5,14 +5,16 @@
 
 class ContourGenerator
 {
-  PolylineGroup group = new PolylineGroup();
+  PolylineGroup group          = new PolylineGroup();
+  PolylineGroup filtered_group = new PolylineGroup();
 
   float elev_min = 0;
   float elev_max = 0;
 
-  private float          img_cx;
-  private float          img_cy;
-  private MarchingSquares ms = new MarchingSquares();
+  private float           img_cx;
+  private float           img_cy;
+  private MarchingSquares ms            = new MarchingSquares();
+  private ContourShadeFilter shade_filter = new ContourShadeFilter();
 
   // ------------------------------------------------------------------
   // Public API
@@ -60,6 +62,24 @@ class ContourGenerator
     current_graphics.pushMatrix();
     current_graphics.translate(-img_cx, -img_cy);
     group.draw(data.page.clipping, data.page.clip_width, data.page.clip_height);
+    current_graphics.popMatrix();
+  }
+
+  // Applies the shade filter and stores the result in filtered_group.
+  void buildFilter(PImage shade_image)
+  {
+    shade_filter.build(group, shade_image);
+    filtered_group = shade_filter.filtered_group;
+    println("ShadeFilter: " + filtered_group.size() + " polylines after filter");
+  }
+
+  // Draws the shade-filtered contours (or the raw group when filter is disabled).
+  void drawFiltered()
+  {
+    PolylineGroup to_draw = data.shade_filter.enabled ? filtered_group : group;
+    current_graphics.pushMatrix();
+    current_graphics.translate(-img_cx, -img_cy);
+    to_draw.draw(data.page.clipping, data.page.clip_width, data.page.clip_height);
     current_graphics.popMatrix();
   }
 
