@@ -39,8 +39,8 @@ class DataShadeFilter extends GenericData
   float threshold_11 = 128;
   float threshold_12 = 128;
 
-  float lerp(float v0, float v1, float t) {
-    return (1 - t) * v0 + t * v1;
+  float lerp_threshold(float v0, float v1, float t) {
+    return lerp(v0, v1, t);
   }
 
   float get_threshold_by_index(int index)
