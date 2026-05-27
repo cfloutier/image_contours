@@ -261,7 +261,7 @@ class ContourShadeFilter
       // Determine the level_index of this polyline (0 if not tagged).
       int line_level = (source_line instanceof ContourPolyline)
         ? ((ContourPolyline)source_line).level_index
-        : i_line;
+        : 0;
 
       // Advance threshold only when entering a new contour level.
       if (line_level != current_level)

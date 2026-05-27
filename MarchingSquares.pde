@@ -48,6 +48,9 @@ class MarchingSquares
   }
 
   // Builds contour lines at the provided pre-computed elevation levels.
+  // Use this variant when levels are quantile-spaced or otherwise custom
+  // (see ContourGenerator.quantileLevels), as opposed to the uniform-step
+  // variant that accepts an integer count.
   PolylineGroup build(ElevationGrid grid, float[] levels)
   {
     PolylineGroup result = new PolylineGroup();

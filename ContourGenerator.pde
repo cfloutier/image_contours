@@ -103,8 +103,7 @@ class ContourGenerator
     for (int i = 0; i < n; i++)
     {
       float q   = (float)(i + 1) / (n + 1);
-      int   idx = Math.round(q * sorted.length);
-      idx = constrain(idx, 0, sorted.length - 1);
+      int   idx = constrain((int)(q * sorted.length), 0, sorted.length - 1);
       levels[i] = sorted[idx];
     }
     return levels;
