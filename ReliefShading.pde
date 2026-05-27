@@ -20,6 +20,10 @@ class DataShading extends GenericData
   // Base light level kept in shadows [0..1].
   float ambient = 0.2;
 
+  // Post-lighting tone controls.
+  float contrast = 1.0;
+  float gamma = 1.0;
+
   boolean invert = false;
 }
 
@@ -39,6 +43,8 @@ class ShadingGUI extends GUIPanel
   Slider sun_altitude_deg;
   Slider z_factor;
   Slider ambient;
+  Slider contrast;
+  Slider gamma;
   Toggle invert;
 
   void setupControls()
@@ -57,6 +63,10 @@ class ShadingGUI extends GUIPanel
     ambient = addSlider("ambient", "Ambient", 0.0, 1.0);
     nextLine();
 
+    contrast = addSlider("contrast", "Contrast", 0.2, 3.0);
+    gamma = addSlider("gamma", "Gamma", 0.3, 3.0);
+    nextLine();
+
     invert = addToggle("invert", "Invert");
   }
 
@@ -68,6 +78,8 @@ class ShadingGUI extends GUIPanel
     sun_altitude_deg.setValue(shading.sun_altitude_deg);
     z_factor.setValue(shading.z_factor);
     ambient.setValue(shading.ambient);
+    contrast.setValue(shading.contrast);
+    gamma.setValue(shading.gamma);
     invert.setValue(shading.invert);
   }
 }
@@ -101,6 +113,7 @@ class ReliefShadingGenerator
       for (int x = 0; x < w; x++)
       {
         float shade = computeShade(grid, x, y);
+        shade = applyTone(shade);
         if (data.shading.invert) shade = 1.0 - shade;
         int g = int(constrain(shade, 0, 1) * 255 + 0.5);
         shaded_image.pixels[x + y * w] = color(g);
@@ -110,7 +123,9 @@ class ReliefShadingGenerator
 
     println("ReliefShading: " + w + "x" + h
       + "  sun(az=" + nf(data.shading.sun_azimuth_deg, 1, 1)
-      + ", alt=" + nf(data.shading.sun_altitude_deg, 1, 1) + ")");
+        + ", alt=" + nf(data.shading.sun_altitude_deg, 1, 1) + ")"
+        + "  tone(c=" + nf(data.shading.contrast, 1, 2)
+        + ", g=" + nf(data.shading.gamma, 1, 2) + ")");
   }
 
   void draw()
@@ -177,5 +192,20 @@ class ReliefShadingGenerator
 
     float ambient = constrain(data.shading.ambient, 0, 1);
     return ambient + (1.0 - ambient) * direct;
+  }
+
+  // Post-lighting tone mapping to control visual separation globally.
+  private float applyTone(float shade)
+  {
+    float s = constrain(shade, 0, 1);
+
+    float c = max(0.01, data.shading.contrast);
+    s = (s - 0.5) * c + 0.5;
+    s = constrain(s, 0, 1);
+
+    float g = max(0.01, data.shading.gamma);
+    s = pow(s, g);
+
+    return constrain(s, 0, 1);
   }
 }

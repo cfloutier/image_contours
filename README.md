@@ -2,6 +2,49 @@
 
 Sketch Processing qui trace les courbes de niveau d'une image ou d'une carte d'élévation.
 
+## Reprise rapide (autre PC)
+
+1. Cloner le repo et ouvrir `image_contours/`.
+2. Installer l'environnement Python:
+
+```powershell
+conda env create -p ./.condaenv -f environment.yml
+```
+
+3. Lancer l'outil bbox (double-clic Windows):
+
+```powershell
+.\fetch_terrarium_bbox.cmd
+```
+
+4. Dans Processing, ouvrir `image_contours.pde`, charger `Settings/default.json`, puis lancer.
+
+5. Reprise technique detaillee: voir `REPRISE_MACHINE.md`.
+
+### Sanity check (apres migration)
+
+Depuis `image_contours/`:
+
+```powershell
+# 1) Verifier Python de l'env
+conda run -p ./.condaenv python -V
+
+# 2) Verifier les dependances
+conda run -p ./.condaenv python -c "import PIL, numpy; print('OK pillow+numpy')"
+
+# 3) Verifier la generation Terrarium locale (sans reseau)
+conda run -p ./.condaenv python tools/gen_terrarium.py concentric --size 128 -o data/terrarium_sanity.png
+
+# 4) Verifier l'outil bbox (aide CLI)
+conda run -p ./.condaenv python tools/fetch_terrarium_bbox.py --help
+```
+
+Ensuite, ouvrir `image_contours.pde` dans Processing et verifier:
+
+- chargement de `Settings/default.json`
+- rendu image + shading + contours
+- HUD en bas (nombre de lignes + temps du dernier calcul contour)
+
 ---
 
 ## Images classiques
@@ -16,6 +59,14 @@ La luminosité des pixels est utilisée comme valeur d'élévation (0–255).
 ### Installation de l'environnement Python (Conda)
 
 Les outils `tools/gen_terrarium.py` et `tools/fetch_terrarium_bbox.py` utilisent Python + Pillow.
+
+Option recommandee (reproductible):
+
+```powershell
+conda env create -p ./.condaenv -f environment.yml
+```
+
+Option manuelle:
 
 Depuis le dossier du projet :
 
@@ -57,21 +108,44 @@ un PNG Terrarium recadré dans `data/`.
 python tools/fetch_terrarium_bbox.py
 ```
 
-Sans `--zoom`, le script propose un choix de definition :
+Sans `--zoom`, le script propose une **taille cible** et calcule automatiquement
+le zoom le plus proche :
 
-- `Basse` (zoom 8) : grande zone (ex: Corse)
-- `Moyenne` (zoom 10) : region
-- `Haute` (zoom 12) : ville / petite zone
-- `Personnalisee` (zoom 0-15)
+- `Petite` (~256 px)
+- `Moyenne` (~512 px)
+- `Grande` (~1024 px)
+- `Tres grande` (~2048 px)
+- `Ultra` (~4096 px)
+- `Personnalisee` (taille en px)
+
+Le calcul est approximatif et depend de la forme de la zone (ratio L/H).
+
+Tu peux aussi passer la taille cible en CLI :
+```
+python tools/fetch_terrarium_bbox.py --target-size 512
+```
+
+`--zoom` reste disponible pour forcer manuellement un niveau precis.
+
+Warning gros download :
+
+- Le script fait un pre-check du nombre de tuiles avant telechargement.
+- Si le total depasse le seuil (100 par defaut), il demande confirmation.
+- Options utiles :
+
+```bash
+python tools/fetch_terrarium_bbox.py --warn-tiles 150
+python tools/fetch_terrarium_bbox.py --yes
+```
 
 Sans `--output`, le script demande un nom de fichier et ajoute automatiquement
-le suffixe du niveau : `_z<zoom>.png`.
+le suffixe du niveau choisi : `_z<zoom>.png`.
 
-Exemple : si tu entres `corse`, la sortie devient `data/corse_z8.png` (si zoom 8).
+Exemple : si tu entres `corse`, la sortie devient `data/corse_z12.png` (si zoom retenu = 12).
 
 Format accepte (unique, style BBoxfinder) :
 
-- `west, south, east, north` (W,S,E,N)
+- `lon, lat, lon, lat`
 
 Exemple :
 ```
@@ -85,7 +159,41 @@ python tools/fetch_terrarium_bbox.py --coords "45.98,6.85,45.82,7.10" --zoom 11 
 - **OpenStreetMap Export** (sélection visuelle d'une zone) : https://www.openstreetmap.org/export
 
 Le script lit les 4 premiers nombres trouvés dans le texte collé, dans cet ordre :
-`west, south, east, north`.
+`lon, lat, lon, lat`.
+
+---
+
+## Pipeline actuel
+
+1. `DataImage.buildTransformedImage()` prepare l'image transformee.
+2. Rebuild cible dans `image_contours.pde`:
+  - changement image => rebuild contours + shading
+  - changement contour => rebuild contours seulement
+  - changement shading => rebuild shading seulement
+3. Rendu:
+  - image source (optionnelle)
+  - shading relief (optionnel)
+  - contours (optionnels)
+
+### Modules principaux
+
+- `ElevationGrid.pde`: adaptation source (classic + Terrarium decode-first)
+- `MarchingSquares.pde`: algo contour pur (reutilisable)
+- `ContourGenerator.pde`: glue data -> algo -> groupe de lignes
+- `ReliefShading.pde`: hillshade + GUI shading
+
+### HUD
+
+Un HUD en bas affiche:
+
+- nombre total de lignes de contour
+- temps du dernier calcul contour
+
+### Shading: controls disponibles
+
+- Physique: `sun_azimuth_deg`, `sun_altitude_deg`, `z_factor`, `ambient`
+- Post-traitement tonal: `contrast`, `gamma`
+- Affichage: `draw`, `imageAlpha`, `invert`
 
 ### Trouver et télécharger un tile
 
@@ -140,6 +248,13 @@ Ensuite dans le sketch, sélectionner le fichier via l'onglet **Image** et activ
 
 ## Statut dev
 
-OK pour la base actuelle.
+Base stable:
 
-Prochaine etape prevue : implementer `ContourShadeFilter` (equivalent du `ThresholdFilter` de `image_lines`) pour filtrer les segments de contours selon la luminosite de l'image d'ombrage relief.
+- generation contours fonctionnelle (classic + Terrarium)
+- shading relief fonctionnel (incluant contrast/gamma)
+- outil bbox Terrarium outille pour production data
+- rebuild decouple (image / contour / shading)
+
+Prochaine etape candidate:
+
+- `ContourShadeFilter` (equivalent du `ThresholdFilter` de `image_lines`) pour filtrer les segments de contours selon la luminosite de l'image d'ombrage relief.

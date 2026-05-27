@@ -62,7 +62,7 @@ def lonlat_to_pixel(lon: float, lat: float, zoom: int) -> tuple[float, float]:
 def parse_coords_text(text: str) -> BBox:
     """
     Parse user text in a single accepted format (BBoxfinder style):
-    west, south, east, north
+    lon,lat,lon,lat
 
     We accept noisy input (labels, brackets, etc.) by extracting the first 4 floats
     in that exact order.
@@ -70,24 +70,24 @@ def parse_coords_text(text: str) -> BBox:
     nums = [float(v) for v in re.findall(r"[-+]?\d+(?:\.\d+)?", text)]
     if len(nums) < 4:
         raise ValueError(
-            "Impossible de lire 4 nombres. Colle une bbox BBoxfinder au format north,west,south,east."
+            "Impossible de lire 4 nombres. Colle une bbox BBoxfinder au format lon,lat,lon,lat."
         )
 
-    west, south, east, north = nums[0], nums[1], nums[2], nums[3]
+    lon1, lat1, lon2, lat2 = nums[0], nums[1], nums[2], nums[3]
 
-    if abs(north) > 90 or abs(south) > 90 or abs(west) > 180 or abs(east) > 180:
+    if abs(lat1) > 90 or abs(lat2) > 90 or abs(lon1) > 180 or abs(lon2) > 180:
         raise ValueError(
-            "Valeurs hors bornes. Attendu: south/north dans [-90,90], west/east dans [-180,180]."
+            "Valeurs hors bornes. Attendu: lat dans [-90,90], lon dans [-180,180]."
         )
 
     # Normalize in case corners are swapped.
-    north, south = max(north, south), min(north, south)
-    west, east = min(west, east), max(west, east)
+    north, south = max(lat1, lat2), min(lat1, lat2)
+    west, east = min(lon1, lon2), max(lon1, lon2)
 
     return BBox(north=north, south=south, west=west, east=east)
 
 def prompt_coords() -> str:
-    print("Colle ici une bbox BBoxfinder: west,south,east,north (W,S,E,N).")
+    print("Colle ici une bbox BBoxfinder: lon,lat,lon,lat.")
     print("Tu peux coller sur une ou plusieurs lignes, puis valider par une ligne vide:")
     lines: list[str] = []
     while True:
@@ -98,36 +98,74 @@ def prompt_coords() -> str:
     return " ".join(lines).strip()
 
 
-def prompt_zoom() -> int:
-    print("Choisis la definition (niveau de detail):")
-    print("  1) Basse   (zoom 8)  - grande zone (iles, regions entieres)")
-    print("  2) Moyenne (zoom 10) - departement / massif")
-    print("  3) Haute   (zoom 12) - ville / petite zone")
-    print("  4) Personnalisee (0-15)")
+def estimate_bbox_pixels(bbox: BBox, zoom: int) -> tuple[int, int]:
+    """Approximate final crop size in pixels for a bbox at a given zoom."""
+    x0, y0 = lonlat_to_pixel(bbox.west, bbox.north, zoom)
+    x1, y1 = lonlat_to_pixel(bbox.east, bbox.south, zoom)
+
+    w = max(1, int(math.ceil(x1 - x0)))
+    h = max(1, int(math.ceil(y1 - y0)))
+    return w, h
+
+
+def pick_zoom_for_target_size(bbox: BBox, target_px: int, min_zoom: int = 0, max_zoom: int = 15) -> tuple[int, int, int]:
+    """
+    Pick the zoom that best matches a target output size.
+    Criterion: minimize |max(width, height) - target_px|.
+    """
+    best_zoom = min_zoom
+    best_w, best_h = estimate_bbox_pixels(bbox, min_zoom)
+    best_err = abs(max(best_w, best_h) - target_px)
+
+    for z in range(min_zoom + 1, max_zoom + 1):
+        w, h = estimate_bbox_pixels(bbox, z)
+        err = abs(max(w, h) - target_px)
+
+        # Tie-breaker: prefer lower zoom to avoid unnecessary download volume.
+        if err < best_err or (err == best_err and z < best_zoom):
+            best_zoom = z
+            best_w, best_h = w, h
+            best_err = err
+
+    return best_zoom, best_w, best_h
+
+
+def prompt_target_size() -> int:
+    print("Choisis une taille cible (approx.) pour l'image finale:")
+    print("  1) Petite  ~256 px")
+    print("  2) Moyenne ~512 px")
+    print("  3) Grande  ~1024 px")
+    print("  4) Tres grande ~2048 px")
+    print("  5) Ultra ~4096 px")
+    print("  6) Personnalisee")
 
     while True:
         choice = input("Selection [2]: ").strip() or "2"
         if choice == "1":
-            return 8
+            return 256
         if choice == "2":
-            return 10
+            return 512
         if choice == "3":
-            return 12
+            return 1024
         if choice == "4":
+            return 2048
+        if choice == "5":
+            return 4096
+        if choice == "6":
             while True:
-                raw = input("Zoom (0-15): ").strip()
+                raw = input("Taille cible (px): ").strip()
                 if not raw:
                     continue
                 try:
-                    z = int(raw)
+                    px = int(raw)
                 except ValueError:
-                    print("Valeur invalide, entre un entier de 0 a 15.")
+                    print("Valeur invalide, entre un entier > 0.")
                     continue
-                if 0 <= z <= 15:
-                    return z
-                print("Valeur invalide, entre un entier de 0 a 15.")
+                if px > 0:
+                    return px
+                print("Valeur invalide, entre un entier > 0.")
         else:
-            print("Choix invalide. Entre 1, 2, 3 ou 4.")
+            print("Choix invalide. Entre 1, 2, 3, 4, 5 ou 6.")
 
 
 def prompt_output_path(zoom: int) -> Path:
@@ -143,6 +181,37 @@ def prompt_output_path(zoom: int) -> Path:
         base = "terrarium_bbox"
 
     return Path("data") / f"{base}_z{zoom}.png"
+
+
+def estimate_tile_range(bbox: BBox, zoom: int) -> tuple[int, int, int, int, int]:
+    """Return tile bounds and total tile count for the bbox at zoom."""
+    x0, y0 = lonlat_to_pixel(bbox.west, bbox.north, zoom)  # top-left
+    x1, y1 = lonlat_to_pixel(bbox.east, bbox.south, zoom)  # bottom-right
+
+    tx0 = int(math.floor(x0 / TILE_SIZE))
+    ty0 = int(math.floor(y0 / TILE_SIZE))
+    tx1 = int(math.floor((x1 - 1e-9) / TILE_SIZE))
+    ty1 = int(math.floor((y1 - 1e-9) / TILE_SIZE))
+
+    tiles_x = tx1 - tx0 + 1
+    tiles_y = ty1 - ty0 + 1
+    if tiles_x <= 0 or tiles_y <= 0:
+        raise ValueError("Selection vide apres projection.")
+
+    max_tile = 2**zoom
+    if tx0 < 0 or ty0 < 0 or tx1 >= max_tile or ty1 >= max_tile:
+        raise ValueError("Selection hors bornes de zoom.")
+
+    total = tiles_x * tiles_y
+    return tx0, ty0, tx1, ty1, total
+
+
+def prompt_confirm_large_download(total_tiles: int, warn_tiles: int) -> bool:
+    print("ATTENTION: volume important.")
+    print(f"  {total_tiles} tuiles a telecharger (seuil warning: {warn_tiles}).")
+    print("Continuer ? [o/N]")
+    ans = input("> ").strip().lower()
+    return ans in ("o", "oui", "y", "yes")
 
 
 def download_tile(z: int, x: int, y: int, timeout: float = 20.0) -> Image.Image:
@@ -227,22 +296,21 @@ def build_terrarium_crop(bbox: BBox, zoom: int) -> Image.Image:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Fetch and crop Terrarium elevation PNG from lat/lon rectangle")
     parser.add_argument("--coords", type=str, default=None,
-                        help="Text containing a BBoxfinder bbox in west,south,east,north order")
+                        help="Text containing a BBoxfinder bbox in lon,lat,lon,lat order")
     parser.add_argument("--zoom", type=int, default=None,
-                        help="Terrarium zoom level (0-15). If omitted, an interactive definition menu is shown")
+                        help="Terrarium zoom level (0-15). If provided, overrides automatic zoom selection")
+    parser.add_argument("--target-size", type=int, default=None,
+                        help="Approximate target size in pixels (long side). Used only when --zoom is omitted")
+    parser.add_argument("--warn-tiles", type=int, default=100,
+                        help="Warn and ask confirmation when estimated tile count exceeds this threshold (default: 100)")
+    parser.add_argument("--yes", action="store_true",
+                        help="Auto-confirm large downloads (skip interactive warning prompt)")
     parser.add_argument("-o", "--output", type=str, default=None,
                         help="Output Terrarium PNG path. If omitted, asks interactively and appends _z<zoom>")
 
     args = parser.parse_args()
 
-    zoom = args.zoom if args.zoom is not None else prompt_zoom()
-
-    if not (0 <= zoom <= 15):
-        print("Erreur: zoom doit etre entre 0 et 15 pour ce workflow.", file=sys.stderr)
-        return 2
-
     text = args.coords if args.coords else prompt_coords()
-    out = Path(args.output) if args.output else prompt_output_path(zoom)
 
     try:
         print("Analyse des coordonnees...", flush=True)
@@ -251,6 +319,36 @@ def main() -> int:
             "BBox: "
             f"north={bbox.north:.6f}, south={bbox.south:.6f}, west={bbox.west:.6f}, east={bbox.east:.6f}"
         )
+
+        if args.zoom is not None:
+            zoom = args.zoom
+            if not (0 <= zoom <= 15):
+                print("Erreur: zoom doit etre entre 0 et 15 pour ce workflow.", file=sys.stderr)
+                return 2
+            est_w, est_h = estimate_bbox_pixels(bbox, zoom)
+            print(f"Mode zoom force: {zoom} (taille estimee: {est_w}x{est_h})", flush=True)
+        else:
+            target_px = args.target_size if args.target_size is not None else prompt_target_size()
+            if target_px <= 0:
+                print("Erreur: target-size doit etre un entier > 0.", file=sys.stderr)
+                return 2
+
+            print(f"Taille cible: ~{target_px}px (cote le plus long)", flush=True)
+            zoom, est_w, est_h = pick_zoom_for_target_size(bbox, target_px)
+            print(f"Zoom auto choisi: {zoom} (taille estimee: {est_w}x{est_h})", flush=True)
+
+        tx0, ty0, tx1, ty1, total_tiles = estimate_tile_range(bbox, zoom)
+        print(f"Pre-check tuiles: {total_tiles} (x:{tx0}->{tx1}, y:{ty0}->{ty1})", flush=True)
+
+        if args.warn_tiles >= 0 and total_tiles > args.warn_tiles:
+            if args.yes:
+                print("Warning accepte via --yes, continuation.", flush=True)
+            else:
+                if not prompt_confirm_large_download(total_tiles, args.warn_tiles):
+                    print("Operation annulee par l'utilisateur.", flush=True)
+                    return 0
+
+        out = Path(args.output) if args.output else prompt_output_path(zoom)
 
         print(f"Definition choisie: zoom {zoom}", flush=True)
         img = build_terrarium_crop(bbox, zoom)

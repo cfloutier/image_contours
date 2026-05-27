@@ -2,122 +2,86 @@
 
 Date: 2026-05-27
 
-## Objectif en cours
+## Resume ultra court
 
-Construire un pipeline similaire a image_lines:
-1. Generer beaucoup de lignes source (ici: contours depuis elevation map).
-2. Construire une image intermediaire exploitable pour filtrer ces lignes.
-3. Utiliser cette image (luminosite) pour garder/supprimer des segments, comme un stage threshold.
+- Le sketch est stable en mode classic + Terrarium.
+- Le pipeline est decouple: image / contour / shading.
+- L'outil cartographique bbox est operationnel (auto-zoom par taille cible + warning gros download).
+- HUD ajoute: temps de calcul contour + nombre total de lignes.
 
-La premiere etape complexe est deja implementee: generation d'une image N&B d'ombrage relief (hillshade) basee sur la carte d'elevation.
+## Reprise sur un autre PC
 
-## Ce qui est implemente
+1. Ouvrir le dossier `image_contours/`.
+2. Creer l'env conda:
 
-### Nouveau module dedie
-- Fichier ajoute: ReliefShading.pde
-- Classes ajoutees:
-  - DataShading
-  - ShadingGUI
-  - ReliefShadingGenerator
+```powershell
+conda env create -p ./.condaenv -f environment.yml
+```
 
-### Integration au sketch
-- DataGlobal.pde:
-  - Ajout du chapitre Shading dans ImgContourData
-  - Reset pris en charge (CopyFrom)
-- DataGUI.pde:
-  - Ajout d'un onglet GUI Shading
-- image_contours.pde:
-  - Ajout de ReliefShadingGenerator shading_generator
-  - Build shading dans le bloc data.any_change()
-  - Draw shading apres l'image source, avant les contours
+3. Lancer l'outil bbox si besoin de nouvelles cartes:
 
-### Config par defaut
-- Settings/default.json:
-  - Ajout de la section Shading
-  - Parametres:
-    - draw
-    - imageAlpha
-    - sun_azimuth_deg
-    - sun_altitude_deg
-    - z_factor
-    - ambient
-    - invert
+```powershell
+.\fetch_terrarium_bbox.cmd
+```
 
-## Details techniques hillshade
+4. Ouvrir `image_contours.pde` et lancer le sketch.
 
-- Source elevation:
-  - Mode classique: ElevationGrid depuis image transformee (brightness)
-  - Mode terrarium: ElevationGrid decode RGB terrarium puis resize/blur
-- Formule:
-  - Gradient local (dzdx, dzdy)
-  - Calcul pente/aspect
-  - Eclairement directionnel selon azimuth/altitude du soleil
-  - Melange ambient + direct
-- z_factor:
-  - Multiplie les gradients (exageration verticale)
-  - >1 = ombres plus contrastees, <1 = rendu plus doux
+## Architecture actuelle
 
-## Etat git au moment de ce resume
+- `ElevationGrid.pde`:
+  - source abstraction
+  - classic brightness
+  - Terrarium decode-first puis resize/blur float
 
-Fichiers modifies:
-- DataGUI.pde
-- DataGlobal.pde
-- Settings/default.json
-- image_contours.pde
+- `MarchingSquares.pde`:
+  - algo contour pur (reutilisable)
 
-Nouveau fichier:
-- ReliefShading.pde
+- `ContourGenerator.pde`:
+  - glue data -> grid -> marching squares -> polyline group
 
-Ce fichier de reprise est a commiter aussi:
-- REPRISE_MACHINE.md
+- `ReliefShading.pde`:
+  - hillshade (sun azimuth/altitude, z_factor, ambient)
+  - tone mapping post-light (`contrast`, `gamma`)
 
-## Point d'attention
+- `image_contours.pde`:
+  - boucle draw allégée
+  - fonction `rebuildIfNeeded()` pour rebuild cible
+  - HUD bas d'ecran
 
-Le fichier Settings/default.json contient actuellement des valeurs de travail (pas des valeurs neutres), par exemple:
-- terrarium_mode=true
-- contour_levels ~11.29
-- lineWidth ~0.45
-- image.draw=false
-- blur et scale modifies
+## Rebuild policy (important)
 
-Si besoin d'un preset plus "propre", creer un second preset dans Settings/ plutot que d'ecraser ce fichier.
+- changement image => rebuild contours + shading
+- changement contour => rebuild contours seulement
+- changement shading => rebuild shading seulement
+- changement page/global => update export scale (et rebuild selon flags globaux)
 
-## Prochaine etape (a faire)
+## Outil bbox Terrarium (etat actuel)
 
-Implementer le filtre de segments de contours base sur la luminosite de l'image d'ombrage, a la maniere de image_lines/ThresholdFilter:
+Fichier: `tools/fetch_terrarium_bbox.py`
 
-1. Ajouter un data chapitre dedie (ex: DataContourFilter)
-- draw
-- black/white mode
-- mirror
-- nb_values + thresholds
-- use_power/power
-- min/max
+- Format unique des coordonnees: `lon,lat,lon,lat`
+- Choix taille cible: 256 / 512 / 1024 / 2048 / 4096 / custom
+- Zoom auto choisi selon la taille cible (cote long)
+- `--zoom` force le zoom manuellement
+- warning gros download:
+  - `--warn-tiles` (defaut 100)
+  - `--yes` pour auto-confirmer
+- nom auto de sortie: suffixe `_z<zoom>` si pas de `--output`
 
-2. Ajouter un GUI tab dedie (ex: ContourFilterGUI)
-- sliders/toggles analogues a ThresholdGUI
+Lanceur Windows: `fetch_terrarium_bbox.cmd`
 
-3. Ajouter un generateur filtre (ex: ContourShadeFilter)
-- Entree: group contours source + image d'ombrage
-- Sortie: PolylineGroup filtre
-- Logique: parcours points, seuil lumineux, close/open segments
+## HUD contours
 
-4. Brancher le pipeline dans draw()
-- build contours source
-- build shading image
-- build filtered group
-- exporter le groupe filtre (file_ui.export_group = groupe final)
+Affiche en bas:
 
-5. Eventuel debug utile
-- afficher min/max/mean de luminance shading pour aider au reglage des seuils
+- `lines`: total des polylines de contour
+- `calc contour`: duree du dernier `generator.build()`
 
-## Rappel architecture cible
+## Points d'attention
 
-Reference de design: image_lines
-- generation source -> post-filtre -> rendu final
-- export branche sur resultat final, pas sur la source brute
+- `Settings/default.json` contient des valeurs de travail (pas forcement neutres).
+- Si besoin de presets propres, creer des fichiers dedies dans `Settings/`.
 
-Ici il faut tendre vers:
-- ContourGenerator (source)
-- ReliefShadingGenerator (map luminosite)
-- ContourShadeFilter (resultat final exportable)
+## Prochaine etape candidate
+
+`ContourShadeFilter` (a la maniere de `image_lines/ThresholdFilter`) pour filtrer les segments de contour selon la luminance de l'ombrage relief.

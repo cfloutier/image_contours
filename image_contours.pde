@@ -15,6 +15,8 @@ ReliefShadingGenerator shading_generator;
 PGraphics current_graphics;
 ControlP5 cp5;
 
+int lastContourCalcMillis = -1;
+
 void setup()
 {
   size(1200, 800);
@@ -44,20 +46,71 @@ void setupControls()
   dataGui.Init();
 }
 
+void rebuildIfNeeded()
+{
+  // Decoupled recompute policy:
+  // - Image changes affect both contour + shading
+  // - Contour chapter changes affect contour only
+  // - Shading chapter changes affect shading only
+  // - Page/global changes can require export-scale refresh
+  boolean image_changed   = data.image.changed;
+  boolean contour_changed = data.contour.changed;
+  boolean shading_changed = data.shading.changed;
+  boolean page_changed    = data.page.changed;
+  boolean global_changed  = data.changed;
+
+  boolean rebuild_contours = image_changed || contour_changed || global_changed;
+  boolean rebuild_shading  = image_changed || shading_changed || global_changed;
+
+  if (rebuild_contours)
+  {
+    long t0 = System.currentTimeMillis();
+    generator.build();
+    lastContourCalcMillis = (int)(System.currentTimeMillis() - t0);
+  }
+
+  if (rebuild_shading)
+    shading_generator.build();
+
+  // Export scale depends on contour geometry and page clipping settings.
+  if (rebuild_contours || page_changed || global_changed)
+  {
+    file_ui.updateExportScale(generator.group.getBoundingBox(
+      data.page.clipping, data.page.clip_width, data.page.clip_height));
+  }
+
+  if (data.any_change())
+    data.reset_all_changes();
+}
+
+void drawHUD()
+{
+  int hud_x = 20;
+  int hud_y = height - 10;
+
+  color bg = data.style.backgroundColor.col;
+  color fg = color(255 - red(bg), 255 - green(bg), 255 - blue(bg));
+
+  fill(fg);
+  textSize(12);
+
+  int line_count = (generator != null && generator.group != null) ? generator.group.size() : 0;
+  String line_text = "lines: " + StringUtils.formatInt(line_count);
+
+  String calc_text = (lastContourCalcMillis >= 0)
+    ? "calc contour: " + StringUtils.formatDuration(lastContourCalcMillis)
+    : "calc contour: n/a";
+
+  text(line_text + "   " + calc_text, hud_x, hud_y);
+}
+
 void draw()
 {
   start_draw();
 
   data.image.buildTransformedImage();
 
-  if (data.any_change())
-  {
-    generator.build();
-    shading_generator.build();
-    file_ui.updateExportScale(generator.group.getBoundingBox(
-      data.page.clipping, data.page.clip_width, data.page.clip_height));
-    data.reset_all_changes();
-  }
+  rebuildIfNeeded();
 
   if (data.image.draw)
     data.image.draw(data.image.imageAlpha);
@@ -73,4 +126,6 @@ void draw()
     generator.draw();
 
   end_draw();
+
+  drawHUD();
 }
