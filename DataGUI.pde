@@ -8,6 +8,7 @@ class DataGUI extends MainPanel
     file_ui = new FileGUI(data, true);
     images_ui = new ImageGUI(data.image);
     contour_ui = new ContourGUI(data.contour);
+    shading_ui = new ShadingGUI(data.shading);
     style_ui = new StyleGUI(data.style);
   }
 
@@ -15,6 +16,7 @@ class DataGUI extends MainPanel
   FileGUI file_ui;
   ImageGUI images_ui;
   ContourGUI contour_ui;
+  ShadingGUI shading_ui;
   StyleGUI style_ui;
 
   void Init()
@@ -22,6 +24,7 @@ class DataGUI extends MainPanel
     addTab(file_ui);
     addTab(images_ui);
     addTab(contour_ui);
+    addTab(shading_ui);
     addTab(style_ui);
 
     super.Init();

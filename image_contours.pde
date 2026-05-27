@@ -10,6 +10,7 @@ ImgContourData data;
 DataGUI dataGui;
 
 ContourGenerator generator;
+ReliefShadingGenerator shading_generator;
 
 PGraphics current_graphics;
 ControlP5 cp5;
@@ -24,6 +25,7 @@ void setup()
   dataGui = new DataGUI(data);
 
   generator = new ContourGenerator();
+  shading_generator = new ReliefShadingGenerator();
 
   setupControls();
 
@@ -48,16 +50,20 @@ void draw()
 
   data.image.buildTransformedImage();
 
-  if (data.image.draw)
-    data.image.draw(data.image.imageAlpha);
-
   if (data.any_change())
   {
     generator.build();
+    shading_generator.build();
     file_ui.updateExportScale(generator.group.getBoundingBox(
       data.page.clipping, data.page.clip_width, data.page.clip_height));
     data.reset_all_changes();
   }
+
+  if (data.image.draw)
+    data.image.draw(data.image.imageAlpha);
+
+  if (data.shading.draw)
+    shading_generator.draw();
 
   strokeWeight(data.style.lineWidth);
   stroke(data.style.lineColor.col);

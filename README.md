@@ -135,3 +135,11 @@ data/
 ```
 
 Ensuite dans le sketch, sélectionner le fichier via l'onglet **Image** et activer le mode **Terrarium** dans les options de contour.
+
+---
+
+## Statut dev
+
+OK pour la base actuelle.
+
+Prochaine etape prevue : implementer `ContourShadeFilter` (equivalent du `ThresholdFilter` de `image_lines`) pour filtrer les segments de contours selon la luminosite de l'image d'ombrage relief.
