@@ -39,6 +39,18 @@ class MarchingSquares
     return result;
   }
 
+  // Builds contour lines at the provided pre-computed elevation levels.
+  PolylineGroup build(ElevationGrid grid, float[] levels)
+  {
+    PolylineGroup result = new PolylineGroup();
+    if (grid.width < 2 || grid.height < 2) return result;
+
+    for (float level : levels)
+      chainSegments(result, marchLevel(grid, level));
+
+    return result;
+  }
+
   // ------------------------------------------------------------------
   // Marching Squares — one level
   // ------------------------------------------------------------------
