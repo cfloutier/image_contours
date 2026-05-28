@@ -22,10 +22,11 @@
 // ------------------------------------------------------------------
 
 // Polyline tagged with the contour level it belongs to.
-// Used by ContourShadeFilter to cycle thresholds per level rather than per segment.
+// group_id (from base Polyline) is set to level_index so ThresholdFilter
+// can cycle thresholds per level uniformly with image_lines.
 class ContourPolyline extends Polyline
 {
-  int level_index = 0;
+  // group_id inherited from Polyline — set to level_index in chainSegments
 }
 
 class MarchingSquares
@@ -191,7 +192,7 @@ class MarchingSquares
 
       // Final polyline = reverse(bwd) + fwd → [..., A_prev, A, B, B_next, ...]
       ContourPolyline line = new ContourPolyline();
-      line.level_index = level_index;
+      line.group_id = level_index;
       for (int j = bwd.size() - 1; j >= 0; j--)
         line.addPoint(bwd.get(j));
       for (PVector p : fwd)

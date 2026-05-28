@@ -56,7 +56,7 @@ void rebuildIfNeeded()
   boolean image_changed   = data.image.changed;
   boolean contour_changed = data.contour.changed;
   boolean shading_changed = data.shading.changed;
-  boolean filter_changed  = data.shade_filter.changed;
+  boolean filter_changed  = data.threshold.changed;
   boolean page_changed    = data.page.changed;
   boolean global_changed  = data.changed;
 
@@ -78,7 +78,7 @@ void rebuildIfNeeded()
   {
     generator.buildFilter(shading_generator.shaded_image);
     // Update export target to always use the active (possibly filtered) group
-    file_ui.export_group = data.shade_filter.enabled
+    file_ui.export_group = data.threshold.enabled
       ? generator.filtered_group
       : generator.group;
   }

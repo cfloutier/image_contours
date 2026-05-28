@@ -5,12 +5,12 @@ class DataGUI extends MainPanel
   public DataGUI(ImgContourData data)
   {
     this.data = data;
-    file_ui        = new FileGUI(data, true);
-    images_ui      = new ImageGUI(data.image);
-    contour_ui     = new ContourGUI(data.contour);
-    shading_ui     = new ShadingGUI(data.shading);
-    shade_filter_ui = new ShadeFilterGUI(data.shade_filter);
-    style_ui       = new StyleGUI(data.style);
+    file_ui         = new FileGUI(data, true);
+    images_ui       = new ImageGUI(data.image);
+    contour_ui      = new ContourGUI(data.contour);
+    shading_ui      = new ShadingGUI(data.shading);
+    threshold_ui    = new ThresholdGUI(data.threshold);
+    style_ui        = new StyleGUI(data.style);
   }
 
   ImgContourData    data;
@@ -18,7 +18,7 @@ class DataGUI extends MainPanel
   ImageGUI          images_ui;
   ContourGUI        contour_ui;
   ShadingGUI        shading_ui;
-  ShadeFilterGUI    shade_filter_ui;
+  ThresholdGUI      threshold_ui;
   StyleGUI          style_ui;
 
   void Init()
@@ -27,7 +27,7 @@ class DataGUI extends MainPanel
     addTab(images_ui);
     addTab(contour_ui);
     addTab(shading_ui);
-    addTab(shade_filter_ui);
+    addTab(threshold_ui);
     addTab(style_ui);
 
     super.Init();
