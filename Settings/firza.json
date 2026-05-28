@@ -6,15 +6,15 @@
     "draw": true
   },
   "Shading": {
-    "sun_azimuth_deg": 172.8000030517578,
+    "sun_azimuth_deg": 196.8000030517578,
     "invert": false,
     "imageAlpha": 90.10000610351562,
-    "z_factor": 1.2000000476837158,
-    "contrast": 1,
-    "ambient": 0.20000000298023224,
+    "z_factor": 1.650999903678894,
+    "contrast": 0.47066670656204224,
+    "ambient": 0.18000000715255737,
     "draw": false,
     "sun_altitude_deg": 6.573333263397217,
-    "gamma": 1.3980000019073486
+    "gamma": 1.4609999656677246
   },
   "Style": {
     "backgroundColor": -1,
@@ -27,7 +27,7 @@
     "margin": 2,
     "clip_height": 0,
     "paper_format": 2,
-    "global_scale": 0.8953487277030945
+    "global_scale": 0.9312976598739624
   },
   "Image": {
     "levelsMax": 255,
@@ -37,20 +37,31 @@
     "levelsMin": 0,
     "Blur": 1,
     "draw": false,
-    "Width": 1496,
+    "Width": 1190,
     "Contrast": 0,
     "blackAndWhite": false,
     "source_file": "fira_z13.png"
   },
   "Threshold": {
-    "min_value": 17.850000381469727,
-    "cached_bisect_bfs_nb_values": 8,
-    "cached_interleaved_nb_values": 8,
+    "min_value": 0,
+    "cached_bisect_bfs_nb_values": 7,
+    "cached_interleaved_nb_values": 7,
     "black": true,
     "distribution_mode": 3,
-    "power": 3.266667366027832,
-    "nb_values": 8,
+    "power": 2.0666675567626953,
+    "nb_values": 7,
     "enabled": true,
     "max_value": 221
+  },
+  "Shore": {
+    "simplify_eps": 0.25,
+    "shore_level": 0.8500003814697266,
+    "dash_gap_step": 9.199999809265137,
+    "wave_step": 0.39999961853027344,
+    "dash_waves": true,
+    "wave_count": 22,
+    "clip_contours": true,
+    "dash_len": 11.880001068115234,
+    "enabled": true
   }
 }

@@ -5,8 +5,9 @@ class ImgContourData extends DataGlobal
   DataImage       image        = new DataImage();
   DataContour     contour      = new DataContour();
   DataShading     shading      = new DataShading();
-  DataThreshold     threshold    = new DataThreshold();
-  Style             style        = new Style();
+  DataThreshold   threshold    = new DataThreshold();
+  DataShore       shore        = new DataShore();
+  Style           style        = new Style();
 
   ImgContourData()
   {
@@ -14,6 +15,7 @@ class ImgContourData extends DataGlobal
     addChapter(contour);
     addChapter(shading);
     addChapter(threshold);
+    addChapter(shore);
     addChapter(style);
   }
 
@@ -23,6 +25,7 @@ class ImgContourData extends DataGlobal
     contour.CopyFrom(new DataContour());
     shading.CopyFrom(new DataShading());
     threshold.CopyFrom(new DataThreshold());
+    shore.CopyFrom(new DataShore());
     style.CopyFrom(new Style());
   }
 }

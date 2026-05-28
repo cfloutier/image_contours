@@ -11,11 +11,14 @@ DataGUI dataGui;
 
 ContourGenerator generator;
 ReliefShadingGenerator shading_generator;
+ShoreGenerator shore_generator;
 
 PGraphics current_graphics;
 ControlP5 cp5;
 
 int lastContourCalcMillis = -1;
+int lastShoreCalcMillis   = -1;
+int lastDrawMillis        = -1;
 
 void setup()
 {
@@ -28,6 +31,7 @@ void setup()
 
   generator = new ContourGenerator();
   shading_generator = new ReliefShadingGenerator();
+  shore_generator = new ShoreGenerator();
 
   setupControls();
 
@@ -57,12 +61,14 @@ void rebuildIfNeeded()
   boolean contour_changed = data.contour.changed;
   boolean shading_changed = data.shading.changed;
   boolean filter_changed  = data.threshold.changed;
+  boolean shore_changed   = data.shore.changed;
   boolean page_changed    = data.page.changed;
   boolean global_changed  = data.changed;
 
   boolean rebuild_contours = image_changed || contour_changed || global_changed;
   boolean rebuild_shading  = image_changed || shading_changed || global_changed;
   boolean rebuild_filter   = rebuild_contours || rebuild_shading || filter_changed;
+  boolean rebuild_shore    = image_changed || shore_changed || global_changed;
 
   if (rebuild_contours)
   {
@@ -74,13 +80,42 @@ void rebuildIfNeeded()
   if (rebuild_shading)
     shading_generator.build();
 
-  if (rebuild_filter)
+  if (rebuild_shore)
   {
+    long t0 = System.currentTimeMillis();
+    shore_generator.build();
+    lastShoreCalcMillis = (int)(System.currentTimeMillis() - t0);
+  }
+
+  if (rebuild_filter)
     generator.buildFilter(shading_generator.shaded_image);
-    // Update export target to always use the active (possibly filtered) group
-    file_ui.export_group = data.threshold.enabled
-      ? generator.filtered_group
-      : generator.group;
+
+  // Rebuild display_group and export_group whenever contours, filter, or shore change.
+  // display_group = what ContourGenerator.drawFiltered() uses.
+  // export_group  = merged contours + shore lines (draw AND export are identical).
+  if (rebuild_filter || rebuild_shore || shore_changed)
+  {
+    // Choose base contour group (threshold-filtered or raw)
+    PolylineGroup base = data.threshold.enabled ? generator.filtered_group : generator.group;
+
+    // Apply shore clip if requested (independent of shore wave display)
+    boolean doClip = data.shore.clip_contours && generator.levels.length > 0;
+    if (doClip)
+      base = data.threshold.enabled
+        ? generator.filteredGroupAboveLevel(data.shore.shore_level)
+        : generator.groupAboveLevel(data.shore.shore_level);
+
+    generator.display_group = base;
+
+    // Build merged export group: filtered contours + shore baseline + waves
+    PolylineGroup merged = new PolylineGroup();
+    for (Polyline p : base.polylines)               merged.add(p);
+    if (data.shore.enabled)
+    {
+      for (Polyline p : shore_generator.group.polylines)       merged.add(p);
+      for (Polyline p : shore_generator.waves_group.polylines) merged.add(p);
+    }
+    file_ui.export_group = merged;
   }
 
   // Export scale depends on contour geometry and page clipping settings.
@@ -108,15 +143,19 @@ void drawHUD()
   int line_count = (generator != null && generator.group != null) ? generator.group.size() : 0;
   String line_text = "lines: " + StringUtils.formatInt(line_count);
 
-  String calc_text = (lastContourCalcMillis >= 0)
+  String calc_text  = (lastContourCalcMillis >= 0)
     ? "calc contour: " + StringUtils.formatDuration(lastContourCalcMillis)
     : "calc contour: n/a";
 
-  text(line_text + "   " + calc_text, hud_x, hud_y);
+  String shore_text = "  calc shore: " + (lastShoreCalcMillis >= 0 ? StringUtils.formatDuration(lastShoreCalcMillis) : "n/a");
+  String draw_text  = "  draw: " + (lastDrawMillis >= 0 ? StringUtils.formatDuration(lastDrawMillis) : "n/a");
+
+  text(line_text + "   " + calc_text + shore_text + draw_text, hud_x, hud_y);
 }
 
 void draw()
 {
+  long t0_draw = System.currentTimeMillis();
   start_draw();
 
   data.image.buildTransformedImage();
@@ -136,7 +175,10 @@ void draw()
   if (data.contour.draw)
     generator.drawFiltered();
 
+  shore_generator.draw();
+
   end_draw();
+  lastDrawMillis = (int)(System.currentTimeMillis() - t0_draw);
 
   drawHUD();
 }

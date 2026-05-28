@@ -10,6 +10,7 @@ class DataGUI extends MainPanel
     contour_ui      = new ContourGUI(data.contour);
     shading_ui      = new ShadingGUI(data.shading);
     threshold_ui    = new ThresholdGUI(data.threshold);
+    shore_ui        = new ShoreGUI(data.shore);
     style_ui        = new StyleGUI(data.style);
   }
 
@@ -19,6 +20,7 @@ class DataGUI extends MainPanel
   ContourGUI        contour_ui;
   ShadingGUI        shading_ui;
   ThresholdGUI      threshold_ui;
+  ShoreGUI          shore_ui;
   StyleGUI          style_ui;
 
   void Init()
@@ -28,6 +30,7 @@ class DataGUI extends MainPanel
     addTab(contour_ui);
     addTab(shading_ui);
     addTab(threshold_ui);
+    addTab(shore_ui);
     addTab(style_ui);
 
     super.Init();

@@ -12,7 +12,8 @@ class ContourShadeFilter
 {
   PolylineGroup filtered_group = new PolylineGroup();
 
-  private Polyline current_line = null;
+  private Polyline current_line     = null;
+  private int      current_group_id = -1;
 
   // Filters source contour group using shade pixel brightness.
   // If shade_image is null the source group is kept as-is.
@@ -30,10 +31,10 @@ class ContourShadeFilter
 
     shade_image.loadPixels();
 
-    int   level_counter    = 0;
-    int   direction_index  = 1;
-    int   current_group_id = -1;
-    float threshold        = 0;
+    int   level_counter   = 0;
+    int   direction_index = 1;
+    current_group_id = -1;
+    float threshold  = 0;
 
     for (int i_line = 0; i_line < source.size(); i_line++)
     {
@@ -91,7 +92,10 @@ class ContourShadeFilter
   private void addPoint(PVector p)
   {
     if (current_line == null)
+    {
       current_line = new Polyline();
+      current_line.group_id = current_group_id;   // preserve level for shore clipping
+    }
     current_line.addPoint(p);
   }
 
