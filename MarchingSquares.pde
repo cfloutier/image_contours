@@ -21,6 +21,13 @@
 //   3 = left   (TL → BL)
 // ------------------------------------------------------------------
 
+// Polyline tagged with the contour level it belongs to.
+// Used by ContourShadeFilter to cycle thresholds per level rather than per segment.
+class ContourPolyline extends Polyline
+{
+  int level_index = 0;
+}
+
 class MarchingSquares
 {
   // Builds contour lines at nLevels evenly distributed elevation levels.
@@ -33,8 +40,24 @@ class MarchingSquares
     float step  = (grid.vmax - grid.vmin) / (n + 1);
     float start = grid.vmin + step;
 
-    for (float level = start; level < grid.vmax; level += step)
-      chainSegments(result, marchLevel(grid, level));
+    int level_idx = 0;
+    for (float level = start; level < grid.vmax; level += step, level_idx++)
+      chainSegments(result, marchLevel(grid, level), level_idx);
+
+    return result;
+  }
+
+  // Builds contour lines at the provided pre-computed elevation levels.
+  // Use this variant when levels are quantile-spaced or otherwise custom
+  // (see ContourGenerator.quantileLevels), as opposed to the uniform-step
+  // variant that accepts an integer count.
+  PolylineGroup build(ElevationGrid grid, float[] levels)
+  {
+    PolylineGroup result = new PolylineGroup();
+    if (grid.width < 2 || grid.height < 2) return result;
+
+    for (int level_idx = 0; level_idx < levels.length; level_idx++)
+      chainSegments(result, marchLevel(grid, levels[level_idx]), level_idx);
 
     return result;
   }
@@ -135,7 +158,7 @@ class MarchingSquares
   // Long keys (0.001 px precision).
   // ------------------------------------------------------------------
 
-  private void chainSegments(PolylineGroup result, ArrayList<float[]> rawSegs)
+  private void chainSegments(PolylineGroup result, ArrayList<float[]> rawSegs, int level_index)
   {
     if (rawSegs.isEmpty()) return;
 
@@ -167,7 +190,8 @@ class MarchingSquares
       extendChain(bwd, map, rawSegs, used);
 
       // Final polyline = reverse(bwd) + fwd → [..., A_prev, A, B, B_next, ...]
-      Polyline line = new Polyline();
+      ContourPolyline line = new ContourPolyline();
+      line.level_index = level_index;
       for (int j = bwd.size() - 1; j >= 0; j--)
         line.addPoint(bwd.get(j));
       for (PVector p : fwd)

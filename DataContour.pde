@@ -7,6 +7,7 @@ class DataContour extends GenericData
   boolean draw          = true;
   boolean terrarium_mode = false;
   float   contour_levels = 20;   // nombre de niveaux souhaités (mode-agnostique)
+  boolean quantile_mode  = false; // true = niveaux aux quantiles (densité visuelle uniforme)
 }
 
 
@@ -22,6 +23,7 @@ class ContourGUI extends GUIPanel
 
   Toggle draw;
   Toggle terrarium_mode;
+  Toggle quantile_mode;
   Slider contour_levels;
   Textlabel mode_label;
 
@@ -29,6 +31,7 @@ class ContourGUI extends GUIPanel
   {
     draw.setValue(contour.draw);
     terrarium_mode.setValue(contour.terrarium_mode);
+    quantile_mode.setValue(contour.quantile_mode);
     contour_levels.setValue(contour.contour_levels);
   }
 
@@ -41,6 +44,8 @@ class ContourGUI extends GUIPanel
     terrarium_mode = addToggle("terrarium_mode", "Mode Terrarium");
     nextLine();
     mode_label = addLabel("Classic : luminosite (canal rouge, 0-255)");
+    nextLine();
+    quantile_mode  = addToggle("quantile_mode",  "Niveaux quantiles (densite uniforme)");
     nextLine();
     contour_levels = addSlider("contour_levels", "Nombre de niveaux", 2, 400);
   }

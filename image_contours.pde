@@ -56,11 +56,13 @@ void rebuildIfNeeded()
   boolean image_changed   = data.image.changed;
   boolean contour_changed = data.contour.changed;
   boolean shading_changed = data.shading.changed;
+  boolean filter_changed  = data.shade_filter.changed;
   boolean page_changed    = data.page.changed;
   boolean global_changed  = data.changed;
 
   boolean rebuild_contours = image_changed || contour_changed || global_changed;
   boolean rebuild_shading  = image_changed || shading_changed || global_changed;
+  boolean rebuild_filter   = rebuild_contours || rebuild_shading || filter_changed;
 
   if (rebuild_contours)
   {
@@ -71,6 +73,15 @@ void rebuildIfNeeded()
 
   if (rebuild_shading)
     shading_generator.build();
+
+  if (rebuild_filter)
+  {
+    generator.buildFilter(shading_generator.shaded_image);
+    // Update export target to always use the active (possibly filtered) group
+    file_ui.export_group = data.shade_filter.enabled
+      ? generator.filtered_group
+      : generator.group;
+  }
 
   // Export scale depends on contour geometry and page clipping settings.
   if (rebuild_contours || page_changed || global_changed)
@@ -123,7 +134,7 @@ void draw()
   noFill();
 
   if (data.contour.draw)
-    generator.draw();
+    generator.drawFiltered();
 
   end_draw();
 
