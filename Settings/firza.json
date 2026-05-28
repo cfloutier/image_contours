@@ -1,42 +1,42 @@
 {
   "Contour": {
     "quantile_mode": false,
-    "contour_levels": 353.566650390625,
+    "contour_levels": 232.8400115966797,
     "terrarium_mode": true,
     "draw": true
   },
   "ShadeFilter": {
-    "threshold_12": 225.25,
-    "threshold_11": 205.99618530273438,
+    "threshold_12": 255,
+    "threshold_11": 255,
     "mirror": false,
-    "threshold_2": 23.78806495666504,
-    "threshold_3": 45.559059143066406,
-    "threshold_10": 186.62142944335938,
+    "threshold_2": 4.576844215393066,
+    "threshold_3": 17.48064613342285,
+    "threshold_10": 255,
     "threshold_1": 0,
     "black": true,
     "enabled": true,
     "min_value": 0,
     "use_power": true,
-    "threshold_6": 107.5582046508789,
-    "threshold_7": 127.60742950439453,
-    "threshold_4": 66.6285400390625,
-    "power": -0.0666666030883789,
-    "threshold_5": 87.25501251220703,
-    "nb_values": 12,
-    "threshold_8": 147.44789123535156,
-    "max_value": 225.25,
-    "threshold_9": 167.11138916015625
+    "threshold_6": 102.77989959716797,
+    "threshold_7": 146.2150115966797,
+    "threshold_4": 38.282527923583984,
+    "power": 0.9333333969116211,
+    "threshold_5": 66.7649917602539,
+    "nb_values": 9,
+    "threshold_8": 196.98011779785156,
+    "max_value": 255,
+    "threshold_9": 255
   },
   "Shading": {
-    "sun_azimuth_deg": 52.80000305175781,
+    "sun_azimuth_deg": 172.8000030517578,
     "invert": false,
-    "imageAlpha": 180,
+    "imageAlpha": 90.10000610351562,
     "z_factor": 1.2000000476837158,
     "contrast": 1,
     "ambient": 0.20000000298023224,
     "draw": false,
-    "sun_altitude_deg": 45,
-    "gamma": 1
+    "sun_altitude_deg": 6.573333263397217,
+    "gamma": 2.2350001335144043
   },
   "Style": {
     "backgroundColor": -1,
@@ -49,7 +49,7 @@
     "margin": 2,
     "clip_height": 0,
     "paper_format": 2,
-    "global_scale": 0.8831169605255127
+    "global_scale": 0.8676472306251526
   },
   "Image": {
     "levelsMax": 255,
@@ -57,11 +57,11 @@
     "reset_image": false,
     "imageAlpha": 255,
     "levelsMin": 0,
-    "Blur": 3,
+    "Blur": 1,
     "draw": false,
-    "Width": 1094,
+    "Width": 1496,
     "Contrast": 0,
     "blackAndWhite": false,
-    "source_file": "island.png"
+    "source_file": "fira_z13.png"
   }
 }
