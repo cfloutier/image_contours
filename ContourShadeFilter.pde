@@ -1,4 +1,4 @@
-﻿// ContourShadeFilter â€” cuts contour lines by sampling the shade image.
+// ContourShadeFilter â€” cuts contour lines by sampling the shade image.
 //
 // DataThreshold + ThresholdGUI are in xLib_ThresholdData.pde (shared with image_lines).
 // group_id on each ContourPolyline (= level_index set by MarchingSquares) is used
