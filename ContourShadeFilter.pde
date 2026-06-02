@@ -1,4 +1,4 @@
-// ContourShadeFilter â€” cuts contour lines by sampling the shade image.
+// ContourShadeFilter cuts contour lines by sampling the shade image.
 //
 // DataThreshold + ThresholdGUI are in xLib_ThresholdData.pde (shared with image_lines).
 // group_id on each ContourPolyline (= level_index set by MarchingSquares) is used
@@ -40,7 +40,7 @@ class ContourShadeFilter
     {
       Polyline source_line = source.polylines.get(i_line);
 
-      // group_id is set to level_index by MarchingSquares â€” advance threshold on each new level.
+      // group_id is set to level_index by MarchingSquares advance threshold on each new level.
       if (source_line.group_id != current_group_id)
       {
         current_group_id = source_line.group_id;
