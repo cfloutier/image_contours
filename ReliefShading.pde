@@ -7,6 +7,7 @@ class DataShading extends GenericData
     super("Shading");
   }
 
+  boolean compute = true;
   boolean draw = true;
   float imageAlpha = 180;
 
@@ -37,6 +38,7 @@ class ShadingGUI extends GUIPanel
     this.shading = shading;
   }
 
+  Toggle compute;
   Toggle draw;
   Slider imageAlpha;
   Slider sun_azimuth_deg;
@@ -51,6 +53,7 @@ class ShadingGUI extends GUIPanel
   {
     super.Init();
 
+    compute = addToggle("compute", "Compute");
     draw = addToggle("draw", "Draw");
     imageAlpha = addSlider("imageAlpha", "Image Alpha", 0, 255);
     nextLine();
@@ -72,6 +75,7 @@ class ShadingGUI extends GUIPanel
 
   void setGUIValues()
   {
+    compute.setValue(shading.compute);
     draw.setValue(shading.draw);
     imageAlpha.setValue(shading.imageAlpha);
     sun_azimuth_deg.setValue(shading.sun_azimuth_deg);

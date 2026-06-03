@@ -4,6 +4,7 @@ class DataContour extends GenericData
     super("Contour");
   }
 
+  boolean compute       = true;
   boolean draw          = true;
   boolean terrarium_mode = false;
   float   contour_levels = 20;   // nombre de niveaux souhaités (mode-agnostique)
@@ -21,6 +22,7 @@ class ContourGUI extends GUIPanel
     this.contour = contour;
   }
 
+  Toggle compute;
   Toggle draw;
   Toggle terrarium_mode;
   Toggle quantile_mode;
@@ -29,6 +31,7 @@ class ContourGUI extends GUIPanel
 
   void setGUIValues()
   {
+    compute.setValue(contour.compute);
     draw.setValue(contour.draw);
     terrarium_mode.setValue(contour.terrarium_mode);
     quantile_mode.setValue(contour.quantile_mode);
@@ -39,6 +42,7 @@ class ContourGUI extends GUIPanel
   {
     super.Init();
 
+    compute        = addToggle("compute",        "Compute");
     draw           = addToggle("draw",           "Draw");
     nextLine();
     terrarium_mode = addToggle("terrarium_mode", "Mode Terrarium");

@@ -65,9 +65,12 @@ void rebuildIfNeeded()
   boolean page_changed    = data.page.changed;
   boolean global_changed  = data.changed;
 
-  boolean rebuild_contours = image_changed || contour_changed || global_changed;
-  boolean rebuild_shading  = image_changed || shading_changed || global_changed;
-  boolean rebuild_filter   = rebuild_contours || rebuild_shading || filter_changed;
+  boolean contour_compute  = data.contour.compute;
+  boolean shading_compute  = data.shading.compute;
+
+  boolean rebuild_contours = contour_compute && (image_changed || contour_changed || global_changed);
+  boolean rebuild_shading  = shading_compute && (image_changed || shading_changed || global_changed);
+  boolean rebuild_filter   = rebuild_contours || rebuild_shading || filter_changed || contour_changed || shading_changed;
   boolean rebuild_shore    = image_changed || shore_changed || global_changed;
 
   if (rebuild_contours)
@@ -76,9 +79,19 @@ void rebuildIfNeeded()
     generator.build();
     lastContourCalcMillis = (int)(System.currentTimeMillis() - t0);
   }
+  else if (!contour_compute && (contour_changed || global_changed))
+  {
+    generator.group.clear();
+    generator.filtered_group.clear();
+    generator.display_group = new PolylineGroup();
+    generator.levels = new float[0];
+    lastContourCalcMillis = -1;
+  }
 
   if (rebuild_shading)
     shading_generator.build();
+  else if (!shading_compute && (shading_changed || global_changed))
+    shading_generator.shaded_image = null;
 
   if (rebuild_shore)
   {
@@ -119,7 +132,7 @@ void rebuildIfNeeded()
   }
 
   // Export scale depends on contour geometry and page clipping settings.
-  if (rebuild_contours || page_changed || global_changed)
+  if (rebuild_contours || contour_changed || page_changed || global_changed)
   {
     file_ui.updateExportScale(generator.group.getBoundingBox(
       data.page.clipping, data.page.clip_width, data.page.clip_height));

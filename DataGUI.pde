@@ -6,7 +6,7 @@ class DataGUI extends MainPanel
   {
     this.data = data;
     file_ui         = new FileGUI(data, true);
-    images_ui       = new ImageGUI(data.image);
+    images_ui       = new ImageContoursGUI(data.image);
     contour_ui      = new ContourGUI(data.contour);
     shading_ui      = new ShadingGUI(data.shading);
     threshold_ui    = new ThresholdGUI(data.threshold);
@@ -16,7 +16,7 @@ class DataGUI extends MainPanel
 
   ImgContourData    data;
   FileGUI           file_ui;
-  ImageGUI          images_ui;
+  ImageContoursGUI  images_ui;
   ContourGUI        contour_ui;
   ShadingGUI        shading_ui;
   ThresholdGUI      threshold_ui;
@@ -35,6 +35,6 @@ class DataGUI extends MainPanel
 
     super.Init();
 
-    cp5.getTab("Image").bringToFront();
+    cp5.getTab("Depth").bringToFront();
   }
 }

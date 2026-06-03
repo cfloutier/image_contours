@@ -2,7 +2,7 @@ import controlP5.*;
 
 class ImgContourData extends DataGlobal
 {
-  DataImage       image        = new DataImage();
+  DataImageContours image      = new DataImageContours();
   DataContour     contour      = new DataContour();
   DataShading     shading      = new DataShading();
   DataThreshold   threshold    = new DataThreshold();
@@ -21,7 +21,7 @@ class ImgContourData extends DataGlobal
 
   void reset()
   {
-    image.CopyFrom(new DataImage());
+    image.CopyFrom(new DataImageContours());
     contour.CopyFrom(new DataContour());
     shading.CopyFrom(new DataShading());
     threshold.CopyFrom(new DataThreshold());

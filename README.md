@@ -2,6 +2,16 @@
 
 Sketch Processing qui trace les courbes de niveau d'une image ou d'une carte d'élévation.
 
+## TODO : 
+* [ ] nettoyer un peu l'ui du depth: ordre et positions des boutons. alléger
+* [ ] soucis sur la largeur finale en mode Perlin. difficile à gérer
+* [ ] l'échelles des sliders est à revoir pour le perlin
+* [ ] comprendre le Z et ptet juste le modifier son slider 
+* [ ] ajouter un moyen de scroller dans l'image à la souris
+
+
+
+
 ## Reprise rapide (autre PC)
 
 1. Cloner le repo et ouvrir `image_contours/`.
@@ -51,6 +61,15 @@ Ensuite, ouvrir `image_contours.pde` dans Processing et verifier:
 
 Tout fichier image (JPG, PNG) placé dans `data/` peut être utilisé.  
 La luminosité des pixels est utilisée comme valeur d'élévation (0–255).
+
+Dans l'onglet **Depth**, la carte de profondeur peut maintenant être:
+
+- un fichier (mode classique, `Select Source Image`)
+- ou une carte générée procéduralement via **Perlin** (`Use Perlin`)
+
+Le mode Perlin utilise la classe custom du projet (`xLib_MyPerlin.pde`),
+pas le `noise()` natif Processing, et est implémente dans des classes derivees
+locales au projet (sans modifier `xLib_Image.pde`).
 
 ---
 
