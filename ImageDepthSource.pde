@@ -8,13 +8,14 @@ class DataImageContours extends DataImage
   // true  = generate procedural map using custom PerlinNoise (xLib_MyPerlin.pde)
   boolean use_perlin = false;
 
-  int   perlin_seed          = 1;
-  float perlin_scale         = 0.02;
-  int   perlin_octaves       = 4;
-  float perlin_falloff       = 0.5;
-  int   perlin_source_width  = 1024;
-  int   perlin_source_height = 1024;
-  float perlin_z             = 0.0;
+  int   perlin_seed         = 1;
+  float perlin_scale        = 1;
+  int   perlin_octaves      = 4;
+  float perlin_falloff      = 0.5;
+  float perlin_aspect_ratio = 1.0;
+  float perlin_offset_x     = 0.0;
+  float perlin_offset_y     = 0.0;
+  float perlin_z            = 0.0;
 
   private PerlinNoise perlin_gen = null;
   private boolean last_use_perlin = false;
@@ -70,8 +71,8 @@ class DataImageContours extends DataImage
 
   void buildPerlinImage()
   {
-    int w = max(8, perlin_source_width);
-    int h = max(8, perlin_source_height);
+    int w = max(8, (int)Width);
+    int h = max(8, (int)(Width * max(0.01, perlin_aspect_ratio)));
 
     if (perlin_gen == null)
       perlin_gen = new PerlinNoise();
@@ -79,7 +80,7 @@ class DataImageContours extends DataImage
     perlin_gen.noiseSeed(perlin_seed);
     perlin_gen.noiseDetail(max(1, perlin_octaves), constrain(perlin_falloff, 0.01, 1.5));
 
-    float s = max(1e-6, perlin_scale);
+    float s = max(1e-6, perlin_scale*0.01);
 
     float[] vals = new float[w * h];
     float mn =  Float.MAX_VALUE;
@@ -88,7 +89,7 @@ class DataImageContours extends DataImage
     for (int y = 0; y < h; y++)
       for (int x = 0; x < w; x++)
       {
-        float v = perlin_gen.noise(x * s, y * s, perlin_z);
+        float v = perlin_gen.noise((x + perlin_offset_x) * s, (y + perlin_offset_y) * s, perlin_z);
         vals[x + y * w] = v;
         if (v < mn) mn = v;
         if (v > mx) mx = v;
@@ -123,16 +124,16 @@ class ImageContoursGUI extends ImageGUI
   ControlsGroup perlin_group;
 
   Textlabel source_title;
-  Textlabel blur_title;
   Textlabel levels_title;
   Textlabel perlin_title;
+  Textlabel file_processing_label;
 
-  Slider perlin_seed;
+  Button    perlin_seed_bt;
+  Textlabel perlin_seed_label;
   Slider perlin_scale;
   Slider perlin_octaves;
   Slider perlin_falloff;
-  Slider perlin_source_width;
-  Slider perlin_source_height;
+  Slider perlin_aspect_ratio;
   Slider perlin_z;
   Toggle use_perlin;
 
@@ -141,6 +142,14 @@ class ImageContoursGUI extends ImageGUI
     super(data);
     contoursImage = data;
     pageName = "Depth";
+  }
+
+  void RandomPerlinSeed()
+  {
+    contoursImage.perlin_seed = (int)random(1000000);
+    if (perlin_seed_label != null)
+      perlin_seed_label.setText(str(contoursImage.perlin_seed));
+    onUIChanged();
   }
 
   @Override
@@ -161,17 +170,17 @@ class ImageContoursGUI extends ImageGUI
     {
       if (file_source_group != null) file_source_group.hide();
       if (file_processing_group != null) file_processing_group.show();
-      if (blur_title != null) blur_title.show();
+
       if (levels_title != null) levels_title.show();
       if (perlin_group != null) perlin_group.show();
       if (perlin_title != null) perlin_title.show();
-      file_Label.setText("Perlin " + contoursImage.perlin_source_width + "x" + contoursImage.perlin_source_height);
+      file_Label.setText("Perlin " + (int)contoursImage.Width + "x" + (int)(contoursImage.Width * max(0.01, contoursImage.perlin_aspect_ratio)));
     }
     else
     {
       if (file_source_group != null) file_source_group.show();
       if (file_processing_group != null) file_processing_group.show();
-      if (blur_title != null) blur_title.show();
+
       if (levels_title != null) levels_title.show();
       if (perlin_group != null) perlin_group.hide();
       if (perlin_title != null) perlin_title.hide();
@@ -199,55 +208,69 @@ class ImageContoursGUI extends ImageGUI
     file_source_group.add(select_bt);
 
     file_Label = inlineLabel("File Label", 200);
+    file_source_group.add(file_Label);
     nextLine();
 
     draw = addToggle("draw", "Draw");
-    blackAndWhite = addToggle("blackAndWhite", "Black & White");
-    nextLine();
-    Width = addSlider("Width", "Width", 200, 2000);
+    xPos += 10;
+
     ImageAlpha = addSlider("ImageAlpha", "Image Alpha", this, 0, 255);
+
+    nextLine();
+  
+    file_processing_label = inlineLabel("File Processing", 200);
     nextLine();
 
-    blur_title = addLabel("add Blur ");
+    Width = addSlider("Width", "Width", 200, 2000);
+    blackAndWhite = addToggle("blackAndWhite", "Black & White");
     Blur = addIntSlider("Blur", "Blur", 1, 20);
+    file_processing_group.add(file_processing_label);
+    
+    file_processing_group.add(Width);
+    file_processing_group.add(blackAndWhite);
     file_processing_group.add(Blur);
     nextLine();
 
-    perlin_title = addLabel("Perlin Source");
-    perlin_seed = addIntSlider("perlin_seed", "Perlin Seed", 0, 1000000);
-    perlin_group.add(perlin_seed);
-    perlin_octaves = addIntSlider("perlin_octaves", "Perlin Octaves", 1, 8);
-    perlin_group.add(perlin_octaves);
-    nextLine();
+    yPos += 5;
 
-    perlin_scale = addSlider("perlin_scale", "Perlin Scale", 0.001, 0.2);
-    perlin_group.add(perlin_scale);
-    perlin_falloff = addSlider("perlin_falloff", "Perlin Falloff", 0.1, 1.2);
-    perlin_group.add(perlin_falloff);
-    nextLine();
-
-    perlin_source_width = addIntSlider("perlin_source_width", "Perlin W", 128, 4096);
-    perlin_group.add(perlin_source_width);
-    perlin_source_height = addIntSlider("perlin_source_height", "Perlin H", 128, 4096);
-    perlin_group.add(perlin_source_height);
-    nextLine();
-
-    perlin_z = addSlider("perlin_z", "Perlin Z", 0, 32);
-    perlin_group.add(perlin_z);
-    nextLine();
-
-    nextLine();
     levels_title = inlineLabel("Gamma Correction", 200);
     resetLevels_bt = addButton("Reset Levels");
     resetLevels_bt.plugTo(this, "ResetLevels");
     file_processing_group.add(resetLevels_bt);
     nextLine();
+
     levelsMin   = addSlider("levelsMin",   "Levels Min",   0, 254);
     file_processing_group.add(levelsMin);
     levelsGamma = addSlider("levelsGamma", "Levels Gamma", -1.0, 1.0);
     file_processing_group.add(levelsGamma);
     levelsMax   = addSlider("levelsMax",   "Levels Max",   1, 255);
     file_processing_group.add(levelsMax);
+
+    nextLine();
+
+    perlin_title = addLabel("Perlin Source");
+    perlin_seed_bt = addButton("Random Seed");
+    perlin_seed_bt.plugTo(this, "RandomPerlinSeed");
+    perlin_group.add(perlin_seed_bt);
+    perlin_seed_label = inlineLabel(str(contoursImage.perlin_seed), 120);
+    perlin_group.add(perlin_seed_label);
+    perlin_octaves = addIntSlider("perlin_octaves", "Perlin Octaves", 1, 8);
+    perlin_group.add(perlin_octaves);
+    nextLine();
+
+    perlin_scale = addSlider("perlin_scale", "Perlin Scale", 0.01, 2);
+    perlin_group.add(perlin_scale);
+    perlin_falloff = addSlider("perlin_falloff", "Perlin Falloff", 0.01, 1.2);
+    perlin_group.add(perlin_falloff);
+    nextLine();
+
+    perlin_aspect_ratio = addSlider("perlin_aspect_ratio", "Perlin Ratio H/W", 0.1, 4.0);
+    perlin_group.add(perlin_aspect_ratio);
+    nextLine();
+
+    perlin_z = addSlider("perlin_z", "Perlin Z", 0, 2);
+    perlin_group.add(perlin_z);
+    nextLine();
 
     // Initialize visibility according to current mode.
     update_ui();
@@ -258,12 +281,11 @@ class ImageContoursGUI extends ImageGUI
   {
     super.setGUIValues();
     use_perlin.setValue(contoursImage.use_perlin ? 1 : 0);
-    perlin_seed.setValue(contoursImage.perlin_seed);
+    perlin_seed_label.setText(str(contoursImage.perlin_seed));
     perlin_scale.setValue(contoursImage.perlin_scale);
     perlin_octaves.setValue(contoursImage.perlin_octaves);
     perlin_falloff.setValue(contoursImage.perlin_falloff);
-    perlin_source_width.setValue(contoursImage.perlin_source_width);
-    perlin_source_height.setValue(contoursImage.perlin_source_height);
+    perlin_aspect_ratio.setValue(contoursImage.perlin_aspect_ratio);
     perlin_z.setValue(contoursImage.perlin_z);
   }
 
@@ -328,13 +350,6 @@ class ImageContoursGUI extends ImageGUI
       return;
     }
 
-    if (c == perlin_seed)
-    {
-      contoursImage.perlin_seed = (int)perlin_seed.getValue();
-      onUIChanged();
-      return;
-    }
-
     if (c == perlin_octaves)
     {
       contoursImage.perlin_octaves = (int)perlin_octaves.getValue();
@@ -342,16 +357,9 @@ class ImageContoursGUI extends ImageGUI
       return;
     }
 
-    if (c == perlin_source_width)
+    if (c == perlin_aspect_ratio)
     {
-      contoursImage.perlin_source_width = (int)perlin_source_width.getValue();
-      onUIChanged();
-      return;
-    }
-
-    if (c == perlin_source_height)
-    {
-      contoursImage.perlin_source_height = (int)perlin_source_height.getValue();
+      contoursImage.perlin_aspect_ratio = perlin_aspect_ratio.getValue();
       onUIChanged();
       return;
     }
