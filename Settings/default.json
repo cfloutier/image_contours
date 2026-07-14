@@ -29,29 +29,29 @@
     "margin": 2,
     "clip_height": 0,
     "paper_format": 2,
-    "global_scale": 0.9203541278839111
+    "global_scale": 0.9262294173240662
   },
   "Image": {
     "levelsMax": 255,
     "perlin_octaves": 6,
-    "perlin_source_height": 1107,
+    "perlin_source_height": 1900,
     "perlin_falloff": 0.38966667652130127,
     "reset_image": false,
     "perlin_seed": 263333,
-    "perlin_z": 12.800000190734863,
-    "draw": true,
+    "perlin_z": 13.546667098999023,
+    "draw": false,
     "Contrast": 0,
     "blackAndWhite": false,
     "source_file": "eye.png",
     "perlin_scale": 0.0010000000474974513,
-    "levelsGamma": 0,
-    "use_perlin": false,
+    "levelsGamma": 0.019999980926513672,
+    "use_perlin": true,
     "imageAlpha": 255,
     "levelsMin": 0,
     "Blur": 2,
-    "last_use_perlin": false,
-    "perlin_source_width": 1464,
-    "Width": 500
+    "last_use_perlin": true,
+    "perlin_source_width": 2469,
+    "Width": 1082
   },
   "Threshold": {
     "min_value": 0,
