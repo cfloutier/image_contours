@@ -3,59 +3,12 @@
 Sketch Processing qui trace les courbes de niveau d'une image ou d'une carte d'élévation.
 
 ## TODO : 
-* [ ] nettoyer un peu l'ui du depth: ordre et positions des boutons. alléger
-* [ ] soucis sur la largeur finale en mode Perlin. difficile à gérer
-* [ ] l'échelles des sliders est à revoir pour le perlin
-* [ ] comprendre le Z et ptet juste le modifier son slider 
-* [ ] ajouter un moyen de scroller dans l'image à la souris
-
-
-
-
-## Reprise rapide (autre PC)
-
-1. Cloner le repo et ouvrir `image_contours/`.
-2. Installer l'environnement Python:
-
-```powershell
-conda env create -p ./.condaenv -f environment.yml
-```
-
-3. Lancer l'outil bbox (double-clic Windows):
-
-```powershell
-.\fetch_terrarium_bbox.cmd
-```
-
-4. Dans Processing, ouvrir `image_contours.pde`, charger `Settings/default.json`, puis lancer.
-
-5. Reprise technique detaillee: voir `REPRISE_MACHINE.md`.
-
-### Sanity check (apres migration)
-
-Depuis `image_contours/`:
-
-```powershell
-# 1) Verifier Python de l'env
-conda run -p ./.condaenv python -V
-
-# 2) Verifier les dependances
-conda run -p ./.condaenv python -c "import PIL, numpy; print('OK pillow+numpy')"
-
-# 3) Verifier la generation Terrarium locale (sans reseau)
-conda run -p ./.condaenv python tools/gen_terrarium.py concentric --size 128 -o data/terrarium_sanity.png
-
-# 4) Verifier l'outil bbox (aide CLI)
-conda run -p ./.condaenv python tools/fetch_terrarium_bbox.py --help
-```
-
-Ensuite, ouvrir `image_contours.pde` dans Processing et verifier:
-
-- chargement de `Settings/default.json`
-- rendu image + shading + contours
-- HUD en bas (nombre de lignes + temps du dernier calcul contour)
-
----
+* [x] nettoyer un peu l'ui du depth: ordre et positions des boutons. alléger
+* [x] soucis sur la largeur finale en mode Perlin. difficile à gérer
+* [x] l'échelles des sliders est à revoir pour le perlin
+* [x] comprendre le Z et ptet juste le modifier son slider 
+* [x] ajouter un moyen de scroller dans l'image à la souris
+* [ ] passer le perlin noise en terrarium
 
 ## Images classiques
 

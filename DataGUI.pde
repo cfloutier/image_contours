@@ -37,4 +37,19 @@ class DataGUI extends MainPanel
 
     cp5.getTab("Depth").bringToFront();
   }
+
+  @Override
+  void mouseDragged()
+  {
+    super.mouseDragged();
+
+    // Perlin space pan: drag on canvas when no GUI panel is being moved
+    if (dragging_panel == null && !cp5.isMouseOver() && data.image.use_perlin)
+    {
+      DataImageContours img = (DataImageContours) data.image;
+      img.perlin_offset_x -= (mouseX - pmouseX);
+      img.perlin_offset_y -= (mouseY - pmouseY);
+      img.changed = true;
+    }
+  }
 }
