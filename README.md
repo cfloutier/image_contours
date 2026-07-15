@@ -69,9 +69,12 @@ Le sketch a un mode **Terrarium** qui décode cette formule au lieu d'utiliser l
 
 ### Workflow simple (copier-coller de coordonnées)
 
-Le script local `tools/fetch_terrarium_bbox.py` permet de coller deux points lat/lon,
-de télécharger automatiquement les tiles Terrarium AWS de la zone, puis de sauvegarder
-un PNG Terrarium recadré dans `data/`.
+Le script local `tools/fetch_terrarium_bbox.py` permet de coller soit une bbox lon/lat,
+soit un GeoJSON brut (par exemple depuis geojson.io), de télécharger automatiquement
+les tiles Terrarium AWS de la zone, puis de sauvegarder un PNG Terrarium recadré dans `data/`.
+
+Lorsqu'une bbox couvre plusieurs tuiles, l'outil applique aussi un lissage léger sur les
+jointures internes entre tuiles, pour réduire les artefacts visibles dans les courbes de niveau.
 
 **Lanceur Windows (double-clic)** : `fetch_terrarium_bbox.cmd`
 
@@ -79,6 +82,9 @@ un PNG Terrarium recadré dans `data/`.
 ```
 python tools/fetch_terrarium_bbox.py
 ```
+
+Le lanceur Windows `fetch_terrarium_bbox.cmd` exécute automatiquement
+`./.condaenv/python.exe` puis garde la fenêtre ouverte pour afficher le résultat.
 
 Sans `--zoom`, le script propose une **taille cible** et calcule automatiquement
 le zoom le plus proche :
@@ -91,6 +97,9 @@ le zoom le plus proche :
 - `Personnalisee` (taille en px)
 
 Le calcul est approximatif et depend de la forme de la zone (ratio L/H).
+Il est aussi limite par la resolution source effectivement disponible sur les tuiles Terrarium.
+En pratique, ce workflow est plafonne a `z15`, donc une cible `Ultra` ne garantit pas
+une image proche de `4096 px` si la bbox est trop petite.
 
 Tu peux aussi passer la taille cible en CLI :
 ```
@@ -98,6 +107,7 @@ python tools/fetch_terrarium_bbox.py --target-size 512
 ```
 
 `--zoom` reste disponible pour forcer manuellement un niveau precis.
+Pour ce workflow Terrarium, le zoom manuel est borne a `0..15`.
 
 Warning gros download :
 
@@ -115,13 +125,24 @@ le suffixe du niveau choisi : `_z<zoom>.png`.
 
 Exemple : si tu entres `corse`, la sortie devient `data/corse_z12.png` (si zoom retenu = 12).
 
-Format accepte (unique, style BBoxfinder) :
+Formats acceptes :
 
 - `lon, lat, lon, lat`
+- GeoJSON brut collé depuis **geojson.io** (`FeatureCollection`, `Feature`, `Polygon`, `bbox`, etc.)
 
-Exemple :
+Arguments utiles :
+
+- `--coords` : texte bbox classique ou texte libre contenant `lon,lat,lon,lat`
+- `--geojson` : GeoJSON brut passé directement en argument
+- `--geojson-file` : chemin vers un fichier `.geojson` ou `.json`
+
+Les modes `--coords`, `--geojson` et `--geojson-file` sont mutuellement exclusifs.
+
+Exemples :
 ```
 python tools/fetch_terrarium_bbox.py --coords "45.98,6.85,45.82,7.10" --zoom 11 -o data/alps_terrarium.png
+python tools/fetch_terrarium_bbox.py --geojson-file data/selection.geojson --target-size 1024
+python tools/fetch_terrarium_bbox.py --geojson "{\"type\":\"FeatureCollection\",...}" --zoom 12
 ```
 
 ### Sites pratiques pour récupérer les coordonnées
@@ -130,8 +151,11 @@ python tools/fetch_terrarium_bbox.py --coords "45.98,6.85,45.82,7.10" --zoom 11 
 - **geojson.io** (dessin rectangle/polygone + copie des coordonnées) : https://geojson.io/
 - **OpenStreetMap Export** (sélection visuelle d'une zone) : https://www.openstreetmap.org/export
 
-Le script lit les 4 premiers nombres trouvés dans le texte collé, dans cet ordre :
-`lon, lat, lon, lat`.
+En mode texte simple, le script lit les 4 premiers nombres trouvés dans le texte collé,
+dans cet ordre : `lon, lat, lon, lat`.
+
+En mode GeoJSON, il extrait toutes les coordonnées disponibles, calcule leur enveloppe,
+et utilise cette bbox pour le téléchargement/crop final.
 
 ---
 

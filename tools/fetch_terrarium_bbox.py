@@ -15,12 +15,15 @@ Examples:
   python tools/fetch_terrarium_bbox.py
   python tools/fetch_terrarium_bbox.py --zoom 12 -o data/alps_terrarium.png
   python tools/fetch_terrarium_bbox.py --coords "45.98,6.85 45.82,7.10"
+    python tools/fetch_terrarium_bbox.py --geojson "{\"type\":\"FeatureCollection\",...}"
+    python tools/fetch_terrarium_bbox.py --geojson-file my_box.geojson
 """
 
 from __future__ import annotations
 
 import argparse
 import io
+import json
 import math
 import os
 import re
@@ -34,6 +37,7 @@ from PIL import Image
 
 TILE_SIZE = 256
 MAX_LAT = 85.05112878
+MAX_ZOOM = 15
 TERRARIUM_URL = "https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png"
 
 
@@ -59,35 +63,178 @@ def lonlat_to_pixel(lon: float, lat: float, zoom: int) -> tuple[float, float]:
     return x, y
 
 
-def parse_coords_text(text: str) -> BBox:
-    """
-    Parse user text in a single accepted format (BBoxfinder style):
-    lon,lat,lon,lat
+def terrarium_rgb_to_elevation(rgb: tuple[int, int, int]) -> float:
+    r, g, b = rgb
+    return r * 256.0 + g + b / 256.0 - 32768.0
 
-    We accept noisy input (labels, brackets, etc.) by extracting the first 4 floats
-    in that exact order.
-    """
-    nums = [float(v) for v in re.findall(r"[-+]?\d+(?:\.\d+)?", text)]
-    if len(nums) < 4:
-        raise ValueError(
-            "Impossible de lire 4 nombres. Colle une bbox BBoxfinder au format lon,lat,lon,lat."
-        )
 
-    lon1, lat1, lon2, lat2 = nums[0], nums[1], nums[2], nums[3]
+def elevation_to_terrarium_rgb(elev_m: float) -> tuple[int, int, int]:
+    value = elev_m + 32768.0
+    r = int(math.floor(value / 256.0))
+    rem = value - r * 256.0
+    g = int(math.floor(rem))
+    b = int(round((rem - g) * 256.0))
 
-    if abs(lat1) > 90 or abs(lat2) > 90 or abs(lon1) > 180 or abs(lon2) > 180:
+    if b >= 256:
+        b = 0
+        g += 1
+    if g >= 256:
+        g = 0
+        r += 1
+
+    r = max(0, min(255, r))
+    g = max(0, min(255, g))
+    b = max(0, min(255, b))
+    return r, g, b
+
+
+def smooth_mosaic_tile_seams(mosaic: Image.Image, tiles_x: int, tiles_y: int) -> None:
+    """Reduce visible contour seams caused by slight border mismatches between source tiles."""
+    pixels = mosaic.load()
+    width, height = mosaic.size
+
+    for seam_ix in range(1, tiles_x):
+        sx = seam_ix * TILE_SIZE
+        for y in range(height):
+            left_e = terrarium_rgb_to_elevation(pixels[sx - 1, y])
+            right_e = terrarium_rgb_to_elevation(pixels[sx, y])
+            avg_rgb = elevation_to_terrarium_rgb((left_e + right_e) * 0.5)
+            pixels[sx - 1, y] = avg_rgb
+            pixels[sx, y] = avg_rgb
+
+    for seam_iy in range(1, tiles_y):
+        sy = seam_iy * TILE_SIZE
+        for x in range(width):
+            top_e = terrarium_rgb_to_elevation(pixels[x, sy - 1])
+            bottom_e = terrarium_rgb_to_elevation(pixels[x, sy])
+            avg_rgb = elevation_to_terrarium_rgb((top_e + bottom_e) * 0.5)
+            pixels[x, sy - 1] = avg_rgb
+            pixels[x, sy] = avg_rgb
+
+
+def bbox_from_lonlat_pairs(points: list[tuple[float, float]]) -> BBox:
+    if not points:
+        raise ValueError("Aucune coordonnee exploitable trouvee.")
+
+    lons = [lon for lon, _lat in points]
+    lats = [lat for _lon, lat in points]
+
+    if any(abs(lat) > 90 for lat in lats) or any(abs(lon) > 180 for lon in lons):
         raise ValueError(
             "Valeurs hors bornes. Attendu: lat dans [-90,90], lon dans [-180,180]."
         )
 
-    # Normalize in case corners are swapped.
-    north, south = max(lat1, lat2), min(lat1, lat2)
-    west, east = min(lon1, lon2), max(lon1, lon2)
+    return BBox(
+        north=max(lats),
+        south=min(lats),
+        west=min(lons),
+        east=max(lons),
+    )
 
-    return BBox(north=north, south=south, west=west, east=east)
+
+def extract_lonlat_pairs(value: object) -> list[tuple[float, float]]:
+    pairs: list[tuple[float, float]] = []
+
+    if isinstance(value, dict):
+        if isinstance(value.get("bbox"), list) and len(value["bbox"]) >= 4:
+            bbox = value["bbox"]
+            return [(float(bbox[0]), float(bbox[1])), (float(bbox[2]), float(bbox[3]))]
+
+        value_type = value.get("type")
+        if value_type == "FeatureCollection":
+            for feature in value.get("features", []):
+                pairs.extend(extract_lonlat_pairs(feature))
+            return pairs
+
+        if value_type == "Feature":
+            return extract_lonlat_pairs(value.get("geometry"))
+
+        if "coordinates" in value:
+            return extract_lonlat_pairs(value["coordinates"])
+
+        return pairs
+
+    if isinstance(value, list):
+        if len(value) >= 2 and all(isinstance(v, (int, float)) for v in value[:2]):
+            lon = float(value[0])
+            lat = float(value[1])
+            pairs.append((lon, lat))
+            return pairs
+
+        for item in value:
+            pairs.extend(extract_lonlat_pairs(item))
+
+    return pairs
+
+
+def parse_geojson_text(text: str) -> BBox | None:
+    stripped = text.strip()
+    if not stripped:
+        return None
+
+    if not stripped.startswith("{") and not stripped.startswith("["):
+        return None
+
+    try:
+        payload = json.loads(stripped)
+    except json.JSONDecodeError:
+        return None
+
+    points = extract_lonlat_pairs(payload)
+    if not points:
+        raise ValueError(
+            "GeoJSON reconnu, mais aucune coordonnee exploitable n'a ete trouvee."
+        )
+
+    return bbox_from_lonlat_pairs(points)
+
+
+def parse_coords_text(text: str) -> BBox:
+    """
+    Parse user text in one of these forms:
+    - BBoxfinder style: lon,lat,lon,lat
+    - raw GeoJSON/geojson.io selection (Polygon/Feature/FeatureCollection/bbox)
+    """
+    geojson_bbox = parse_geojson_text(text)
+    if geojson_bbox is not None:
+        return geojson_bbox
+
+    nums = [float(v) for v in re.findall(r"[-+]?\d+(?:\.\d+)?", text)]
+    if len(nums) < 4:
+        raise ValueError(
+            "Impossible de lire une bbox. Colle soit lon,lat,lon,lat, soit un GeoJSON depuis geojson.io."
+        )
+
+    lon1, lat1, lon2, lat2 = nums[0], nums[1], nums[2], nums[3]
+    return bbox_from_lonlat_pairs([(lon1, lat1), (lon2, lat2)])
+
+
+def load_text_argument(args: argparse.Namespace) -> str:
+    provided = [
+        args.coords is not None,
+        args.geojson is not None,
+        args.geojson_file is not None,
+    ]
+    if sum(provided) > 1:
+        raise ValueError("Utilise un seul mode d'entree: --coords, --geojson ou --geojson-file.")
+
+    if args.geojson_file is not None:
+        path = Path(args.geojson_file)
+        try:
+            return path.read_text(encoding="utf-8")
+        except OSError as e:
+            raise ValueError(f"Impossible de lire le fichier GeoJSON: {path}") from e
+
+    if args.geojson is not None:
+        return args.geojson
+
+    if args.coords is not None:
+        return args.coords
+
+    return prompt_coords()
 
 def prompt_coords() -> str:
-    print("Colle ici une bbox BBoxfinder: lon,lat,lon,lat.")
+    print("Colle ici soit une bbox lon,lat,lon,lat, soit un GeoJSON geojson.io.")
     print("Tu peux coller sur une ou plusieurs lignes, puis valider par une ligne vide:")
     lines: list[str] = []
     while True:
@@ -108,7 +255,7 @@ def estimate_bbox_pixels(bbox: BBox, zoom: int) -> tuple[int, int]:
     return w, h
 
 
-def pick_zoom_for_target_size(bbox: BBox, target_px: int, min_zoom: int = 0, max_zoom: int = 15) -> tuple[int, int, int]:
+def pick_zoom_for_target_size(bbox: BBox, target_px: int, min_zoom: int = 0, max_zoom: int = MAX_ZOOM) -> tuple[int, int, int]:
     """
     Pick the zoom that best matches a target output size.
     Criterion: minimize |max(width, height) - target_px|.
@@ -132,6 +279,7 @@ def pick_zoom_for_target_size(bbox: BBox, target_px: int, min_zoom: int = 0, max
 
 def prompt_target_size() -> int:
     print("Choisis une taille cible (approx.) pour l'image finale:")
+    print(f"  (limitee par la disponibilite reelle des tuiles Terrarium, zoom max {MAX_ZOOM})")
     print("  1) Petite  ~256 px")
     print("  2) Moyenne ~512 px")
     print("  3) Grande  ~1024 px")
@@ -276,6 +424,10 @@ def build_terrarium_crop(bbox: BBox, zoom: int) -> Image.Image:
             done += 1
             print(f"    telecharge ({int(done * 100 / total)}%)", flush=True)
 
+    if tiles_x > 1 or tiles_y > 1:
+        print("[3/4] Lissage des jointures internes entre tuiles...", flush=True)
+        smooth_mosaic_tile_seams(mosaic, tiles_x, tiles_y)
+
     print("[3/4] Download termine.", flush=True)
     print("[4/4] Recadrage final...", flush=True)
 
@@ -296,9 +448,13 @@ def build_terrarium_crop(bbox: BBox, zoom: int) -> Image.Image:
 def main() -> int:
     parser = argparse.ArgumentParser(description="Fetch and crop Terrarium elevation PNG from lat/lon rectangle")
     parser.add_argument("--coords", type=str, default=None,
-                        help="Text containing a BBoxfinder bbox in lon,lat,lon,lat order")
+                        help="Text containing either lon,lat,lon,lat or a raw GeoJSON selection")
+    parser.add_argument("--geojson", type=str, default=None,
+                        help="Raw GeoJSON text (FeatureCollection, Feature, Polygon, bbox, etc.)")
+    parser.add_argument("--geojson-file", type=str, default=None,
+                        help="Path to a .geojson/.json file to read and use as the bbox source")
     parser.add_argument("--zoom", type=int, default=None,
-                        help="Terrarium zoom level (0-15). If provided, overrides automatic zoom selection")
+                        help=f"Terrarium zoom level (0-{MAX_ZOOM}). If provided, overrides automatic zoom selection")
     parser.add_argument("--target-size", type=int, default=None,
                         help="Approximate target size in pixels (long side). Used only when --zoom is omitted")
     parser.add_argument("--warn-tiles", type=int, default=100,
@@ -310,9 +466,8 @@ def main() -> int:
 
     args = parser.parse_args()
 
-    text = args.coords if args.coords else prompt_coords()
-
     try:
+        text = load_text_argument(args)
         print("Analyse des coordonnees...", flush=True)
         bbox = parse_coords_text(text)
         print(
@@ -322,8 +477,8 @@ def main() -> int:
 
         if args.zoom is not None:
             zoom = args.zoom
-            if not (0 <= zoom <= 15):
-                print("Erreur: zoom doit etre entre 0 et 15 pour ce workflow.", file=sys.stderr)
+            if not (0 <= zoom <= MAX_ZOOM):
+                print(f"Erreur: zoom doit etre entre 0 et {MAX_ZOOM} pour ce workflow.", file=sys.stderr)
                 return 2
             est_w, est_h = estimate_bbox_pixels(bbox, zoom)
             print(f"Mode zoom force: {zoom} (taille estimee: {est_w}x{est_h})", flush=True)
@@ -336,6 +491,12 @@ def main() -> int:
             print(f"Taille cible: ~{target_px}px (cote le plus long)", flush=True)
             zoom, est_w, est_h = pick_zoom_for_target_size(bbox, target_px)
             print(f"Zoom auto choisi: {zoom} (taille estimee: {est_w}x{est_h})", flush=True)
+            if zoom == MAX_ZOOM and max(est_w, est_h) < target_px:
+                print(
+                    f"Note: taille cible non atteinte: les tuiles Terrarium semblent s'arreter au zoom {MAX_ZOOM} "
+                    f"(estimation max pour cette bbox: {est_w}x{est_h}).",
+                    flush=True,
+                )
 
         tx0, ty0, tx1, ty1, total_tiles = estimate_tile_range(bbox, zoom)
         print(f"Pre-check tuiles: {total_tiles} (x:{tx0}->{tx1}, y:{ty0}->{ty1})", flush=True)
