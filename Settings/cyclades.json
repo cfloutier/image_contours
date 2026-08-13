@@ -1,54 +1,79 @@
-﻿{
-    "Contour":  {
-                    "quantile_mode":  false,
-                    "contour_levels":  98.36666870117188,
-                    "terrarium_mode":  true,
-                    "draw":  true
-                },
-    "Threshold":  {
-                        "enabled":  true,
-                        "black":  true,
-                        "distribution_mode":  0,
-                        "nb_values":  9,
-                        "power":  0.9333333969116211,
-                        "min_value":  0,
-                        "max_value":  255
-                    },
-    "Shading":  {
-                    "sun_azimuth_deg":  172.8000030517578,
-                    "invert":  false,
-                    "imageAlpha":  90.10000610351562,
-                    "z_factor":  1.2000000476837158,
-                    "contrast":  1,
-                    "ambient":  0.20000000298023224,
-                    "draw":  false,
-                    "sun_altitude_deg":  45,
-                    "gamma":  2.2350001335144043
-                },
-    "Style":  {
-                  "backgroundColor":  -1,
-                  "lineColor":  -16777216,
-                  "lineWidth":  0.45000001788139343
-              },
-    "Page":  {
-                 "clipping":  false,
-                 "clip_width":  0,
-                 "margin":  2,
-                 "clip_height":  0,
-                 "paper_format":  2,
-                 "global_scale":  0.8676472306251526
-             },
-    "Image":  {
-                  "levelsMax":  255,
-                  "levelsGamma":  0,
-                  "reset_image":  false,
-                  "imageAlpha":  255,
-                  "levelsMin":  0,
-                  "Blur":  2,
-                  "draw":  false,
-                  "Width":  1496,
-                  "Contrast":  0,
-                  "blackAndWhite":  false,
-                  "source_file":  "island.png"
-              }
+{
+  "Contour": {
+    "compute": true,
+    "quantile_mode": true,
+    "contour_levels": 313.76666259765625,
+    "terrarium_mode": true,
+    "draw": true
+  },
+  "Shading": {
+    "compute": true,
+    "sun_azimuth_deg": 63.60000228881836,
+    "invert": false,
+    "imageAlpha": 90.10000610351562,
+    "z_factor": 1.2000000476837158,
+    "contrast": 0.9280000329017639,
+    "ambient": 0.20000000298023224,
+    "draw": false,
+    "sun_altitude_deg": 45,
+    "gamma": 2.2350001335144043
+  },
+  "Style": {
+    "backgroundColor": -1,
+    "lineColor": -16777216,
+    "lineWidth": 0.45000001788139343
+  },
+  "Page": {
+    "clipping": false,
+    "clip_width": 0,
+    "margin": 2,
+    "clip_height": 0,
+    "paper_format": 2,
+    "global_scale": 0.6756758689880371
+  },
+  "Image": {
+    "levelsMax": 255,
+    "perlin_octaves": 4,
+    "perlin_offset_y": 0,
+    "perlin_falloff": 0.4999999701976776,
+    "reset_image": false,
+    "perlin_seed": 1,
+    "perlin_z": 0,
+    "draw": false,
+    "perlin_offset_x": 0,
+    "Contrast": 0,
+    "blackAndWhite": false,
+    "source_file": "island.png",
+    "perlin_scale": 1,
+    "levelsGamma": 0,
+    "use_perlin": false,
+    "imageAlpha": 255,
+    "levelsMin": 0,
+    "perlin_aspect_ratio": 1,
+    "Blur": 2,
+    "last_use_perlin": false,
+    "Width": 1496
+  },
+  "Threshold": {
+    "min_value": 0,
+    "cached_bisect_bfs_nb_values": 9,
+    "cached_interleaved_nb_values": -1,
+    "black": true,
+    "distribution_mode": -1,
+    "power": 4.333333969116211,
+    "nb_values": 9,
+    "enabled": true,
+    "max_value": 167.45001220703125
+  },
+  "Shore": {
+    "simplify_eps": 1.5,
+    "shore_level": 0,
+    "dash_gap_step": 3,
+    "wave_step": 4,
+    "dash_waves": false,
+    "wave_count": 5,
+    "clip_contours": false,
+    "dash_len": 10,
+    "enabled": false
+  }
 }

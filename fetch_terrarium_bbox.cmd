@@ -1,6 +1,10 @@
 @echo off
 setlocal
 
+rem Defensive: if an environment variable named ERRORLEVEL exists,
+rem it can mask CMD's dynamic errorlevel expansion.
+set "ERRORLEVEL="
+
 set "SCRIPT_DIR=%~dp0"
 set "PY=%SCRIPT_DIR%.condaenv\python.exe"
 set "SCRIPT=%SCRIPT_DIR%tools\fetch_terrarium_bbox.py"
@@ -20,11 +24,12 @@ if not exist "%SCRIPT%" (
 
 echo.
 echo === Terrarium BBox Fetcher ===
-echo Tip: Draw a rectangle on a map site, copy coords, then paste here.
 echo.
 
 "%PY%" "%SCRIPT%" %*
 set "EC=%ERRORLEVEL%"
+
+if not defined EC set "EC=1"
 
 echo.
 if "%EC%"=="0" (
