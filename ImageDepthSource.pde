@@ -12,10 +12,11 @@ class DataImageContours extends DataImage
   float perlin_scale        = 1;
   int   perlin_octaves      = 4;
   float perlin_falloff      = 0.5;
-  float perlin_aspect_ratio = 1.0;
-  float perlin_offset_x     = 0.0;
-  float perlin_offset_y     = 0.0;
-  float perlin_z            = 0.0;
+  float perlin_aspect_ratio  = 1.0;
+  float perlin_offset_x      = 0.0;
+  float perlin_offset_y      = 0.0;
+  float perlin_z             = 0.0;
+  float perlin_max_elevation = 4000.0;  // used only in terrarium mode (metres)
 
   private PerlinNoise perlin_gen = null;
   private boolean last_use_perlin = false;
@@ -99,12 +100,31 @@ class DataImageContours extends DataImage
 
     image = createImage(w, h, RGB);
     image.loadPixels();
-    for (int i = 0; i < image.pixels.length; i++)
+
+    if (data.contour.terrarium_mode)
     {
-      float n = (vals[i] - mn) / range;
-      int g = (int)(constrain(n, 0, 1) * 255 + 0.5);
-      image.pixels[i] = color(g);
+      // Encode as Terrarium RGB: elevation = R*256 + G + B/256 - 32768
+      // Map Perlin [0,1] → [0, perlin_max_elevation] metres.
+      for (int i = 0; i < image.pixels.length; i++)
+      {
+        float elev  = ((vals[i] - mn) / range) * perlin_max_elevation;
+        float total = elev + 32768.0;
+        int   R = constrain((int)(total / 256.0), 0, 255);
+        int   G = constrain((int)(total) % 256, 0, 255);
+        int   B = constrain((int)((total - floor(total)) * 256.0), 0, 255);
+        image.pixels[i] = color(R, G, B);
+      }
     }
+    else
+    {
+      for (int i = 0; i < image.pixels.length; i++)
+      {
+        float n = (vals[i] - mn) / range;
+        int g = (int)(constrain(n, 0, 1) * 255 + 0.5);
+        image.pixels[i] = color(g);
+      }
+    }
+
     image.updatePixels();
 
     // println("Perlin source generated: " + w + "x" + h
@@ -134,6 +154,7 @@ class ImageContoursGUI extends ImageGUI
   Slider perlin_octaves;
   Slider perlin_falloff;
   Slider perlin_aspect_ratio;
+  Slider perlin_max_elevation;
   Slider perlin_z;
   Toggle use_perlin;
 
@@ -266,6 +287,8 @@ class ImageContoursGUI extends ImageGUI
 
     perlin_aspect_ratio = addSlider("perlin_aspect_ratio", "Perlin Ratio H/W", 0.1, 4.0);
     perlin_group.add(perlin_aspect_ratio);
+    perlin_max_elevation = addSlider("perlin_max_elevation", "Max Elev (m)", 100, 9000);
+    perlin_group.add(perlin_max_elevation);
     nextLine();
 
     perlin_z = addSlider("perlin_z", "Perlin Z", 0, 2);
@@ -286,6 +309,7 @@ class ImageContoursGUI extends ImageGUI
     perlin_octaves.setValue(contoursImage.perlin_octaves);
     perlin_falloff.setValue(contoursImage.perlin_falloff);
     perlin_aspect_ratio.setValue(contoursImage.perlin_aspect_ratio);
+    perlin_max_elevation.setValue(contoursImage.perlin_max_elevation);
     perlin_z.setValue(contoursImage.perlin_z);
   }
 
@@ -360,6 +384,13 @@ class ImageContoursGUI extends ImageGUI
     if (c == perlin_aspect_ratio)
     {
       contoursImage.perlin_aspect_ratio = perlin_aspect_ratio.getValue();
+      onUIChanged();
+      return;
+    }
+
+    if (c == perlin_max_elevation)
+    {
+      contoursImage.perlin_max_elevation = perlin_max_elevation.getValue();
       onUIChanged();
       return;
     }
