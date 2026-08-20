@@ -2,17 +2,33 @@
 
 Sketch Processing qui trace les courbes de niveau d'une image ou d'une carte d'élévation.
 
-## TODO : 
-* [x] nettoyer un peu l'ui du depth: ordre et positions des boutons. alléger
-* [x] soucis sur la largeur finale en mode Perlin. difficile à gérer
-* [x] l'échelles des sliders est à revoir pour le perlin
-* [x] comprendre le Z et ptet juste le modifier son slider 
-* [x] ajouter un moyen de scroller dans l'image à la souris
-* [ ] passer le perlin noise en terrarium
+---
+
+## Getting a Release
+
+Aucune installation de Processing, Java ou ControlP5 n'est nécessaire pour lancer une release — tout est inclus dans le zip.
+
+1. Télécharger le zip de release (voir `releases/` ou l'endroit où il t'a été partagé).
+2. Le dézipper n'importe où.
+3. Lancer le `.exe` à l'intérieur — c'est tout.
+
+---
+
+## Onglets
+
+- **Files** : charger/sauver les réglages, exporter (SVG/PDF/DXF), échelle de page et clipping.
+- **Depth** : source de la carte de profondeur (image ou Perlin).
+- **Contour** : génération des courbes de niveau.
+- **Shading** : ombrage relief (hillshade).
+- **Threshold** : filtre les segments de contour selon la luminosité du shading.
+- **Shore** : ligne de rivage + lignes de vagues.
+- **Style** : couleurs et épaisseur de trait.
+
+---
 
 ## Images classiques
 
-Tout fichier image (JPG, PNG) placé dans `data/` peut être utilisé.  
+Tout fichier image (JPG, PNG) placé dans `data/` peut être utilisé.
 La luminosité des pixels est utilisée comme valeur d'élévation (0–255).
 
 Dans l'onglet **Depth**, la carte de profondeur peut maintenant être:
@@ -22,23 +38,73 @@ Dans l'onglet **Depth**, la carte de profondeur peut maintenant être:
 
 Le mode Perlin utilise la classe custom du projet (`xLib_MyPerlin.pde`),
 pas le `noise()` natif Processing, et est implémente dans des classes derivees
-locales au projet (sans modifier `xLib_Image.pde`).
+locales au projet (sans modifier `xLib_Image.pde`). Glisser la souris sur le canvas
+en mode Perlin permet de se déplacer dans l'espace de bruit.
+
+---
+
+## Contour — paramètres
+
+| Paramètre | Rôle |
+|-----------|------|
+| `compute` | Calculer les courbes de niveau |
+| `draw` | Afficher les courbes de niveau |
+| `terrarium_mode` | Décoder l'élévation au format Terrarium (voir plus bas) au lieu de la luminosité brute |
+| `quantile_mode` | Niveaux placés aux quantiles (densité visuelle uniforme) plutôt qu'espacés linéairement |
+| `contour_levels` | Nombre de niveaux de courbes souhaités |
+
+---
+
+## Shading — paramètres
+
+- Physique : `sun_azimuth_deg`, `sun_altitude_deg`, `z_factor`, `ambient`
+- Post-traitement tonal : `contrast`, `gamma`
+- Affichage : `compute`, `draw`, `imageAlpha`, `invert`
+
+---
+
+## Threshold — filtre des contours
+
+L'onglet **Threshold** filtre les segments de contour selon la luminosité de l'image de shading sous chaque point : au-dessus/en dessous d'un seuil, le segment est coupé. Le composant (`DataThreshold`) est partagé avec le projet `image_lines` — 6 modes de distribution des seuils selon les niveaux de contour (progressif, miroir, hachures, entrelacé, bissection...).
+
+---
+
+## Shore — rivage et vagues
+
+L'onglet **Shore** extrait une ligne de contour à une seule élévation (`shore_level`), utilisée comme ligne de côte/rivage. Des lignes de "vagues" sont ensuite générées par offsets géométriques successifs de cette ligne (indépendant de la carte d'élévation).
+
+| Paramètre | Rôle |
+|-----------|------|
+| `enabled` | Activer le rivage |
+| `shore_level` | Élévation de la ligne de rivage (0-255 en mode classique, mètres en mode Terrarium) |
+| `wave_count` | Nombre de lignes de vagues |
+| `wave_step` | Espacement entre vagues (px) — signe négatif pour offset vers l'intérieur |
+| `simplify_eps` | Simplification (Douglas-Peucker) des lignes |
+| `clip_contours` | Masquer les courbes de niveau sous le rivage |
+| `dash_waves` | Dégradé de tirets sur les lignes de vagues |
+| `dash_len` | Longueur des tirets (px) |
+| `dash_gap_step` | Incrément d'espace entre tirets, par vague (px) |
 
 ---
 
 ## Cartes d'élévation — format Terrarium PNG
 
+Pour une précision maximale (~65 000 niveaux), le sketch peut lire des **terrain tiles au format Terrarium** (AWS) au lieu d'une image classique.
+L'élévation y est encodée dans les canaux RGB : `elevation (m) = R×256 + G + B/256 − 32768`.
+
+Active le mode **Terrarium** dans l'onglet **Contour** pour utiliser cette formule au lieu de la luminosité brute d'une image classique.
+
 ### Installation de l'environnement Python (Conda)
 
 Les outils `tools/gen_terrarium.py` et `tools/fetch_terrarium_bbox.py` utilisent Python + Pillow.
 
-Option recommandee (reproductible):
+Option recommandee (reproductible) :
 
 ```powershell
 conda env create -p ./.condaenv -f environment.yml
 ```
 
-Option manuelle:
+Option manuelle :
 
 Depuis le dossier du projet :
 
@@ -61,11 +127,6 @@ Option Windows (sans `conda run`) :
 ```
 
 Le lanceur `fetch_terrarium_bbox.cmd` utilise automatiquement `./.condaenv/python.exe`.
-
-Pour une précision maximale (~65 000 niveaux), utiliser les **terrain tiles AWS au format Terrarium**.  
-L'élévation est encodée dans les canaux RGB : `elevation (m) = R×256 + G + B/256 − 32768`
-
-Le sketch a un mode **Terrarium** qui décode cette formule au lieu d'utiliser la luminosité brute.
 
 ### Workflow simple (copier-coller de coordonnées)
 
@@ -157,55 +218,21 @@ dans cet ordre : `lon, lat, lon, lat`.
 En mode GeoJSON, il extrait toutes les coordonnées disponibles, calcule leur enveloppe,
 et utilise cette bbox pour le téléchargement/crop final.
 
----
-
-## Pipeline actuel
-
-1. `DataImage.buildTransformedImage()` prepare l'image transformee.
-2. Rebuild cible dans `image_contours.pde`:
-  - changement image => rebuild contours + shading
-  - changement contour => rebuild contours seulement
-  - changement shading => rebuild shading seulement
-3. Rendu:
-  - image source (optionnelle)
-  - shading relief (optionnel)
-  - contours (optionnels)
-
-### Modules principaux
-
-- `ElevationGrid.pde`: adaptation source (classic + Terrarium decode-first)
-- `MarchingSquares.pde`: algo contour pur (reutilisable)
-- `ContourGenerator.pde`: glue data -> algo -> groupe de lignes
-- `ReliefShading.pde`: hillshade + GUI shading
-
-### HUD
-
-Un HUD en bas affiche:
-
-- nombre total de lignes de contour
-- temps du dernier calcul contour
-
-### Shading: controls disponibles
-
-- Physique: `sun_azimuth_deg`, `sun_altitude_deg`, `z_factor`, `ambient`
-- Post-traitement tonal: `contrast`, `gamma`
-- Affichage: `draw`, `imageAlpha`, `invert`
-
-### Trouver et télécharger un tile
+### Trouver et télécharger un tile manuellement
 
 **URL directe :**
 ```
 https://s3.amazonaws.com/elevation-tiles-prod/terrarium/{z}/{x}/{y}.png
 ```
 
-**Outil visuel recommandé — Tangrams Heightmapper :**  
+**Outil visuel recommandé — Tangrams Heightmapper :**
 https://tangrams.github.io/heightmapper/
 
 1. Naviguer vers la zone souhaitée
 2. Décocher "auto-expose" pour conserver les valeurs absolues
 3. Cliquer **Export** → s'ouvre dans un nouvel onglet → Enregistrer sous
 
-> ⚠️ L'export de Tangrams est une image *auto-exposée* (niveaux relatifs à la vue).  
+> ⚠️ L'export de Tangrams est une image *auto-exposée* (niveaux relatifs à la vue).
 > Pour des valeurs absolues, télécharger les tiles bruts directement (voir ci-dessous).
 
 ### Calculer les coordonnées d'un tile
@@ -225,7 +252,7 @@ y = floor((1 − ln(tan(lat×π/180) + 1/cos(lat×π/180)) / π) / 2 × 2^Z)
 | Rocheuses (Colorado) | 39°N | -106°E | 7 | 26 | 49 | https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/26/49.png |
 | Hawaii | 20°N | -157°E | 7 | 14 | 56 | https://s3.amazonaws.com/elevation-tiles-prod/terrarium/7/14/56.png |
 
-**Zoom 8** (tile ≈ 150×150 km) : doubler x et y, diviser par 2 la surface couverte.  
+**Zoom 8** (tile ≈ 150×150 km) : doubler x et y, diviser par 2 la surface couverte.
 **Zoom 9** : encore plus de détail (~75×75 km).
 
 ### Placer les fichiers
@@ -238,19 +265,19 @@ data/
   rockies_z7.png      ← tile 7/26/49
 ```
 
-Ensuite dans le sketch, sélectionner le fichier via l'onglet **Image** et activer le mode **Terrarium** dans les options de contour.
+Ensuite dans le sketch, sélectionner le fichier via l'onglet **Depth** et activer le mode **Terrarium** dans les options de contour.
 
 ---
 
-## Statut dev
+Pour le détail du pipeline, l'architecture, et la procédure de build, voir [DEVELOPMENT.md](DEVELOPMENT.md).
 
-Base stable:
+---
 
-- generation contours fonctionnelle (classic + Terrarium)
-- shading relief fonctionnel (incluant contrast/gamma)
-- outil bbox Terrarium outille pour production data
-- rebuild decouple (image / contour / shading)
+## Changelog
 
-Prochaine etape candidate:
-
-- `ContourShadeFilter` (equivalent du `ThresholdFilter` de `image_lines`) pour filtrer les segments de contours selon la luminosite de l'image d'ombrage relief.
+### 2026-08-19 — xLib 3.13.4
+- **README** : ajout d'une section "Getting a Release" en haut ; ajout des sections **Contour**, **Threshold** et **Shore** (l'onglet Shore n'était documenté nulle part) ; séparation du contenu implémentation (pipeline, modules, HUD) vers un nouveau [DEVELOPMENT.md](DEVELOPMENT.md), en gardant le workflow de préparation des cartes Terrarium ici (c'est un usage du projet, pas une info de développement du sketch) ; correction du statut de `ContourShadeFilter`, qui était encore décrit comme "prochaine étape candidate" alors qu'il est déjà implémenté et branché dans le pipeline.
+- **Load / Save** : n'ouvre plus de fenêtre système séparée (qui pouvait parfois s'ouvrir cachée derrière la fenêtre principale) — remplacé par un navigateur de fichiers intégré dans l'onglet **Files**. Load et "Save as..." affichent un bouton par fichier/dossier de `Settings/`, avec un bouton `..` pour remonter et Prev/Next au-delà d'un certain nombre de fichiers. Écraser un fichier existant demande confirmation ; sauver sous un nouveau nom utilise un champ texte pré-rempli avec le nom courant.
+- **Clip Ratio** : les contrôles de clipping de l'onglet Files ont un nouveau verrou de proportion — `None` (libre, comme avant), `A4`, `16:9`, `4:3`, `Raisin`, ou `1:1`, plus un toggle `Landscape`/portrait. Avec une proportion active, glisser le slider de largeur ou de hauteur ajuste automatiquement l'autre pour garder le ratio.
+- **`export_app.ps1`** : nouveau script de build — exporte le sketch en application autonome (JRE + toutes les libs embarquées, dont ControlP5), copie `Settings/` dans l'export (non inclus par `processing-java --export`, nécessaire au démarrage), et zippe le résultat dans `releases/`. Même script copié tel quel dans chaque projet, même convention que les fichiers partagés `xLib_*.pde`.
+- **`.gitignore`** : ignore `build_*/` et `releases/` (sortie de build générée).
