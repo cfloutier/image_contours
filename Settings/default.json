@@ -19,27 +19,31 @@
     "gamma": 1
   },
   "Style": {
-    "backgroundColor": -1,
-    "lineColor": -16777216,
+    "backgroundColor": -16777216,
+    "lineColor": -141259,
     "lineWidth": 0.45000001788139343
   },
   "Page": {
+    "clip_landscape": false,
     "clipping": false,
     "clip_width": 0,
     "margin": 2,
+    "clip_aspect_ratio": 0,
     "clip_height": 0,
     "paper_format": 2,
-    "global_scale": 0.9262294173240662
+    "global_scale": 0.9312976598739624
   },
   "Image": {
     "levelsMax": 255,
     "perlin_octaves": 6,
-    "perlin_source_height": 1900,
+    "perlin_offset_y": 0,
     "perlin_falloff": 0.38966667652130127,
     "reset_image": false,
     "perlin_seed": 263333,
     "perlin_z": 2,
     "draw": true,
+    "perlin_offset_x": 0,
+    "perlin_max_elevation": 4000,
     "Contrast": 0,
     "blackAndWhite": false,
     "source_file": "eye.png",
@@ -48,9 +52,9 @@
     "use_perlin": true,
     "imageAlpha": 255,
     "levelsMin": 0,
+    "perlin_aspect_ratio": 1,
     "Blur": 2,
     "last_use_perlin": true,
-    "perlin_source_width": 1464,
     "Width": 500
   },
   "Threshold": {

@@ -147,7 +147,7 @@ void drawHUD()
   int hud_x = 20;
   int hud_y = height - 10;
 
-  color bg = data.style.backgroundColor.col;
+  color bg = data.style.backgroundColor;
   color fg = color(255 - red(bg), 255 - green(bg), 255 - blue(bg));
 
   fill(fg);
@@ -182,7 +182,7 @@ void draw()
     shading_generator.draw();
 
   strokeWeight(data.style.lineWidth);
-  stroke(data.style.lineColor.col);
+  stroke(data.style.lineColor);
   noFill();
 
   if (data.contour.draw)
